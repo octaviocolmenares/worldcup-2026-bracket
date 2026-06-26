@@ -55,7 +55,7 @@
         padding:7px 13px;white-space:nowrap;text-decoration:none;}
 
   /* view toggle */
-  .toggle{display:flex;gap:7px;justify-content:center;margin:6px 0 4px;}
+  .toggle{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px;}
   .toggle button{padding:9px 16px;border-radius:11px;background:var(--card);border:1px solid var(--line);
         color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer;}
   .toggle button.active{background:var(--accent2);border-color:var(--accent2);color:#fff;}
@@ -166,6 +166,79 @@
   .foot{text-align:center;color:var(--muted);font-size:11px;margin-top:24px;line-height:1.7;}
   .foot a{color:var(--accent2);text-decoration:none;}
 
+  /* ---------- pool: picks + leaderboard ---------- */
+  #picksView, #leaderboardView{display:none;}
+  .poolcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 17px;margin:6px 0 14px;}
+  .poolcard h2{margin:0 0 8px;font-size:17px;}
+  .poolcard p{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.6;}
+  .poolcard p b{color:var(--ink);}
+  .poolmeta{display:flex;gap:8px;flex-wrap:wrap;}
+  .poolmeta .pill{background:rgba(58,134,255,.12);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;}
+  .poolmeta .pill b{color:var(--gold);}
+  .lockmsg{background:rgba(255,107,107,.1);border:1px solid var(--bad);border-radius:13px;padding:13px 15px;margin:0 0 14px;font-size:13.5px;font-weight:600;color:var(--ink);}
+  .notready{background:rgba(255,211,78,.08);border:1px solid var(--gold);border-radius:13px;padding:12px 15px;margin:0 0 14px;font-size:12.5px;color:var(--ink);line-height:1.55;}
+
+  .pickfields{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .pickfields label{flex:1;min-width:200px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:5px;}
+  .pickfields .opt{opacity:.7;}
+  .pickfields input{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;color:var(--ink);font-size:14px;}
+  .pickfields input:focus{outline:none;border-color:var(--accent2);}
+
+  .champpick{position:sticky;top:0;z-index:7;background:rgba(255,211,78,.12);border:1px solid var(--gold);border-radius:12px;
+        padding:11px 14px;margin-bottom:14px;font-weight:800;font-size:14px;display:flex;align-items:center;gap:9px;}
+  .champpick .flag{font-size:19px;}
+  .champpick.empty{color:var(--muted);font-weight:600;background:var(--card);border-color:var(--line);}
+
+  .pkround{margin-bottom:18px;}
+  .pkround h3{font-size:14px;margin:0 0 9px;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;}
+  .pkmatch{display:grid;grid-template-columns:30px 1fr 26px 1fr;align-items:center;gap:7px;margin-bottom:8px;}
+  .pkno{font-size:10px;color:var(--muted);text-align:center;}
+  .pkvs{font-size:11px;color:var(--muted);text-align:center;}
+  .pkopt{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:11px;
+        padding:11px 12px;color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer;text-align:left;width:100%;
+        transition:border-color .12s, background .12s;}
+  .pkopt:hover{border-color:var(--accent2);}
+  .pkopt .flag{font-size:16px;flex:0 0 auto;}
+  .pkopt.sel{background:rgba(43,212,154,.16);border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .pkopt.sel:after{content:"✓";margin-left:auto;color:var(--accent);font-weight:800;}
+  .pkopt.empty{cursor:default;color:var(--muted);font-style:italic;font-weight:500;font-size:12px;background:transparent;border-style:dashed;}
+  .pkopt.empty:hover{border-color:var(--line);}
+
+  .picksfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;position:sticky;bottom:0;
+        background:linear-gradient(180deg,transparent,var(--bg) 40%);padding:12px 0 6px;}
+  .pkprogress{font-size:13px;color:var(--muted);font-weight:700;}
+  .pkprogress b{color:var(--accent);}
+  .pkbtn{background:var(--accent);border:none;border-radius:11px;padding:13px 22px;color:#062018;font-weight:800;font-size:14.5px;cursor:pointer;}
+  .pkbtn:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;}
+  .pkreset{background:none;border:1px solid var(--line);border-radius:11px;padding:11px 15px;color:var(--muted);font-size:12.5px;cursor:pointer;}
+  .thanks{background:rgba(43,212,154,.1);border:1px solid var(--accent);border-radius:14px;padding:18px;text-align:center;}
+  .thanks h3{margin:0 0 6px;font-size:18px;}
+  .thanks p{color:var(--muted);font-size:13px;margin:4px 0;}
+
+  .lbtable{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .lbtable th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line);}
+  .lbtable td{padding:11px 10px;border-bottom:1px solid var(--line);}
+  .lbtable td.r{text-align:right;font-variant-numeric:tabular-nums;}
+  .lbtable .rank{font-weight:800;color:var(--muted);width:34px;}
+  .lbtable tr.top1 .rank{color:var(--gold);}
+  .lbtable tr.top2 .rank,.lbtable tr.top3 .rank{color:var(--accent);}
+  .lbtable .pts{font-weight:800;color:var(--accent);}
+  .lbtable .pay{font-size:11px;color:var(--gold);}
+  .lbtable .champ{color:var(--muted);}
+  .lbempty{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 18px;text-align:center;color:var(--muted);}
+  .lbempty b{color:var(--ink);}
+
+  @media (max-width:760px){
+    .poolcard{padding:14px;}
+    .pickfields label{min-width:100%;}
+    .pkmatch{grid-template-columns:1fr;gap:5px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px;}
+    .pkno{text-align:left;}
+    .pkvs{display:none;}
+    .pkopt{font-size:14px;padding:13px 13px;}
+    .lbtable .champ{display:none;}
+    .lbtable th,.lbtable td{padding:9px 6px;}
+  }
+
   /* ---------- mobile ---------- */
   .swipehint{display:none;}
   @media (max-width:760px){
@@ -185,7 +258,7 @@
     .banner .teams{font-size:16px;}
     .banner .when{font-size:12px;}
     .banner .go{padding:8px 12px;}
-    .toggle button{flex:1;padding:10px 8px;font-size:13px;}
+    .toggle button{flex:1 1 calc(50% - 4px);padding:10px 8px;font-size:13px;}
     .hint{font-size:11.5px;}
     .swipehint{display:block;text-align:center;color:var(--muted);font-size:11.5px;margin:2px 0 8px;}
     .swipehint b{color:var(--accent2);}
@@ -239,7 +312,9 @@
 
   <div class="toggle">
     <button id="btnBracket" class="active" onclick="setView('bracket')">🗺️ Bracket</button>
-    <button id="btnSchedule" onclick="setView('schedule')">📋 Schedule list</button>
+    <button id="btnSchedule" onclick="setView('schedule')">📋 Schedule</button>
+    <button id="btnPicks" onclick="setView('picks')">🎯 Make Picks</button>
+    <button id="btnLeaderboard" onclick="setView('leaderboard')">🏆 Leaderboard</button>
   </div>
 
   <!-- BRACKET VIEW -->
@@ -270,6 +345,47 @@
   <div id="scheduleView">
     <div class="roundnav" id="roundnav"></div>
     <div id="sections"></div>
+  </div>
+
+  <!-- hidden form so Netlify detects & captures submissions at deploy time -->
+  <form name="bracket-picks" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input type="text" name="name" />
+    <input type="email" name="email" />
+    <input type="hidden" name="picks" />
+    <input type="text" name="bot-field" />
+  </form>
+
+  <!-- MAKE PICKS VIEW -->
+  <div id="picksView">
+    <div class="poolcard">
+      <h2>🎯 Office Bracket Pool</h2>
+      <p id="poolRules"></p>
+      <div class="poolmeta" id="poolMeta"></div>
+    </div>
+    <div class="lockmsg" id="picksLockMsg" hidden></div>
+    <div class="notready" id="picksNotReady" hidden></div>
+
+    <form id="picksForm" autocomplete="off" onsubmit="return submitPicks(event)">
+      <div class="pickfields">
+        <label>Your name <input type="text" id="pkName" maxlength="40" placeholder="e.g. Octavio C." required></label>
+        <label>Email or Slack <span class="opt">(so we can pay you out)</span> <input type="text" id="pkEmail" maxlength="60" placeholder="optional"></label>
+      </div>
+      <div class="champpick" id="champPick"></div>
+      <div id="picksRounds"></div>
+      <div class="picksfoot">
+        <div class="pkprogress" id="pkProgress"></div>
+        <button type="submit" id="pkSubmit" class="pkbtn">Submit my bracket</button>
+        <button type="button" id="pkReset" class="pkreset" onclick="resetPicks()">Clear picks</button>
+      </div>
+    </form>
+
+    <div class="thanks" id="picksThanks" hidden></div>
+  </div>
+
+  <!-- LEADERBOARD VIEW -->
+  <div id="leaderboardView">
+    <div class="poolcard" id="lbInfo"></div>
+    <div id="lbBody"></div>
   </div>
 
   <div class="foot">
@@ -624,12 +740,208 @@ function buildStepperAndBanner(){
 }
 
 // ---------- view switching ----------
+/* =====================  OFFICE BRACKET POOL  ===================== */
+// Adjust the entry fee here if you like; payout split is 60/30/10 to top 3.
+const POOL = { entryFee: 5, split: [0.6, 0.3, 0.1] };
+// Points awarded for each correctly-picked game winner, by round.
+const POINTS = { R32:1, R16:2, QF:4, SF:8, F:16 };
+const PICK_ROUNDS = [['R32','Round of 32'],['R16','Round of 16'],['QF','Quarterfinals'],['SF','Semifinals'],['F','Final']];
+// Picks lock at the first knockout kickoff.
+const LOCK_ISO = MATCHES.reduce((min,m)=> m.iso < min ? m.iso : min, MATCHES[0].iso);
+function picksLocked(){ return Date.now() >= new Date(LOCK_ISO).getTime(); }
+// Every knockout game a player must pick (3rd-place match excluded).
+const PICK_IDS = MATCHES.filter(m => m.round !== '3RD').map(m => m.id);
+
+// Registry of every known team by ISO (fills out as Round-of-32 teams are confirmed).
+const TEAM_BY_ISO = {};
+MATCHES.forEach(m => [m.home, m.away].forEach(s => { if (s.t === 'team') TEAM_BY_ISO[s.iso] = s; }));
+
+let myPicks = {};
+try { myPicks = JSON.parse(localStorage.getItem('wc26picks') || '{}') || {}; } catch(e){ myPicks = {}; }
+function saveMyPicks(){ try { localStorage.setItem('wc26picks', JSON.stringify(myPicks)); } catch(e){} }
+
+// Resolve a game slot to the team the PLAYER has advanced into it (or null).
+function pickSlotTeam(slot){
+  if (slot.t === 'team') return slot;
+  if (slot.t === 'win'){ const iso = myPicks[slot.ref]; return iso ? (TEAM_BY_ISO[iso] || null) : null; }
+  return null; // tbd / not yet determined
+}
+function pickWinnerTeam(gameId){ const iso = myPicks[gameId]; return iso ? (TEAM_BY_ISO[iso] || null) : null; }
+function slotPlaceholder(slot){
+  if (slot.t === 'tbd') return slot.label.replace('Runner-up','2nd').replace('Winner','1st');
+  if (slot.t === 'win') return 'Winner of Match ' + slot.ref;
+  return 'TBD';
+}
+// True once all Round-of-32 teams are confirmed (group stage finished).
+function bracketReady(){ return MATCHES.filter(m => m.round === 'R32').every(m => m.home.t === 'team' && m.away.t === 'team'); }
+
+function setPick(gameId, iso){
+  if (picksLocked()) return;
+  myPicks[gameId] = iso;
+  // Drop any later pick whose team is no longer one of that game's participants.
+  let changed = true;
+  while (changed){
+    changed = false;
+    MATCHES.forEach(m => {
+      if (m.round === '3RD' || !myPicks[m.id]) return;
+      const a = pickSlotTeam(m.home), b = pickSlotTeam(m.away);
+      const ok = (a && a.iso === myPicks[m.id]) || (b && b.iso === myPicks[m.id]);
+      if (!ok){ delete myPicks[m.id]; changed = true; }
+    });
+  }
+  saveMyPicks();
+  renderPicks();
+}
+function resetPicks(){ if (picksLocked()) return; myPicks = {}; saveMyPicks(); renderPicks(); }
+
+function pickOptHTML(m, slot, team, locked){
+  if (!team) return `<div class="pkopt empty">${slotPlaceholder(slot)}</div>`;
+  const sel = myPicks[m.id] === team.iso ? ' sel' : '';
+  const click = locked ? '' : ` onclick="setPick(${m.id},'${team.iso}')"`;
+  return `<button type="button" class="pkopt${sel}"${click}><span class="flag">${flagEmoji(team.iso)}</span><span>${team.short || team.name}</span></button>`;
+}
+function renderPicks(){
+  const locked = picksLocked();
+  const ready = bracketReady();
+  // rules card
+  document.getElementById('poolRules').innerHTML =
+    `Pick the winner of <b>every knockout game</b> — Round of 32 through the Final. Points: ` +
+    `<b>1</b> · R32, <b>2</b> · R16, <b>4</b> · QF, <b>8</b> · Semis, <b>16</b> · champion. ` +
+    `Highest total wins. Entry is <b>$${POOL.entryFee}</b>; the pot pays <b>60% / 30% / 10%</b> to 1st / 2nd / 3rd. ` +
+    `Money is settled in person — the site just tracks picks &amp; scores.`;
+  document.getElementById('poolMeta').innerHTML =
+    `<span class="pill">Entry <b>$${POOL.entryFee}</b></span>` +
+    `<span class="pill">Payout <b>60/30/10</b></span>` +
+    `<span class="pill">Locks <b>${fmtDate(LOCK_ISO)}, ${byId[73].etLabel}</b></span>`;
+
+  const lockEl = document.getElementById('picksLockMsg');
+  lockEl.hidden = !locked;
+  if (locked) lockEl.textContent = '🔒 Picks are closed — the knockout stage has started. Head to the Leaderboard to follow the standings.';
+
+  const nrEl = document.getElementById('picksNotReady');
+  nrEl.hidden = ready || locked;
+  if (!ready && !locked) nrEl.innerHTML = '⏳ The Round of 32 isn’t fully confirmed yet (group stage ends Jun 27). You can start picking the matchups already set, then come back to finish the bracket once it’s complete.';
+
+  const champ = pickWinnerTeam(104);
+  const champEl = document.getElementById('champPick');
+  if (champ){ champEl.className = 'champpick'; champEl.innerHTML = `<span class="flag">${flagEmoji(champ.iso)}</span> Your champion: ${champ.name}`; }
+  else { champEl.className = 'champpick empty'; champEl.textContent = '🏆 Your pick for champion will show here once you pick the Final.'; }
+
+  let html = '';
+  PICK_ROUNDS.forEach(([key,label]) => {
+    html += `<div class="pkround"><h3>${label}</h3>`;
+    MATCHES.filter(m => m.round === key).forEach(m => {
+      const a = pickSlotTeam(m.home), b = pickSlotTeam(m.away);
+      html += `<div class="pkmatch"><div class="pkno">M${m.id}</div>${pickOptHTML(m,m.home,a,locked)}<div class="pkvs">vs</div>${pickOptHTML(m,m.away,b,locked)}</div>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('picksRounds').innerHTML = html;
+
+  const done = PICK_IDS.filter(id => myPicks[id]).length;
+  document.getElementById('pkProgress').innerHTML = `<b>${done}</b> / ${PICK_IDS.length} games picked`;
+  const submit = document.getElementById('pkSubmit');
+  submit.disabled = locked || done < PICK_IDS.length;
+  submit.textContent = locked ? 'Picks closed' : done < PICK_IDS.length ? `Pick all ${PICK_IDS.length} games to submit` : 'Submit my bracket';
+}
+
+function submitPicks(e){
+  e.preventDefault();
+  if (picksLocked()){ alert('Picks are closed — the tournament has started.'); return false; }
+  const name = document.getElementById('pkName').value.trim();
+  if (!name){ alert('Please enter your name.'); return false; }
+  const done = PICK_IDS.filter(id => myPicks[id]).length;
+  if (done < PICK_IDS.length){ alert(`Please pick all ${PICK_IDS.length} games first (${done} done).`); return false; }
+  const body = new URLSearchParams();
+  body.append('form-name', 'bracket-picks');
+  body.append('name', name);
+  body.append('email', document.getElementById('pkEmail').value.trim());
+  body.append('picks', JSON.stringify(myPicks));
+  const btn = document.getElementById('pkSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
+  fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
+    .then(r => { if (!r.ok) throw new Error(r.status); showThanks(name); })
+    .catch(() => { alert('Submit failed — check your connection and try again.'); btn.disabled = false; btn.textContent = 'Submit my bracket'; });
+  return false;
+}
+function showThanks(name){
+  document.getElementById('picksForm').hidden = true;
+  const t = document.getElementById('picksThanks');
+  t.hidden = false;
+  t.innerHTML = `<h3>✅ You're in, ${name}!</h3>
+    <p>Your bracket is locked in. Don't forget to send your <b>$${POOL.entryFee}</b> entry to the organizer.</p>
+    <p>Follow the standings on the <b>Leaderboard</b> tab once the games begin.</p>
+    <p style="margin-top:10px"><button type="button" class="pkreset" onclick="document.getElementById('picksThanks').hidden=true;document.getElementById('picksForm').hidden=false;">Edit my picks</button></p>`;
+}
+
+/* ---------- leaderboard ---------- */
+let ENTRIES = [];
+function loadEntries(){
+  return fetch('./entries.json', { cache:'no-store' })
+    .then(r => r.ok ? r.json() : [])
+    .then(d => { ENTRIES = Array.isArray(d) ? d : []; })
+    .catch(() => { ENTRIES = []; });
+}
+function actualWinnerIso(gameId){ const t = resultWinnerTeam(gameId); return t ? t.iso : null; }
+function scoreEntry(picks){
+  picks = picks || {};
+  let pts = 0, correct = 0, decided = 0;
+  MATCHES.forEach(m => {
+    if (m.round === '3RD') return;
+    const aw = actualWinnerIso(m.id);
+    if (!aw) return;
+    decided++;
+    if (picks[m.id] && picks[m.id] === aw){ pts += POINTS[m.round]; correct++; }
+  });
+  return { pts, correct, decided };
+}
+function renderLeaderboard(){
+  const pot = ENTRIES.length * POOL.entryFee;
+  const pay = POOL.split.map(s => Math.round(pot * s));
+  document.getElementById('lbInfo').innerHTML =
+    `<h2>🏆 Leaderboard</h2>
+     <div class="poolmeta">
+       <span class="pill">Entries <b>${ENTRIES.length}</b></span>
+       <span class="pill">Pot <b>$${pot}</b></span>
+       <span class="pill">1st <b>$${pay[0]}</b></span>
+       <span class="pill">2nd <b>$${pay[1]}</b></span>
+       <span class="pill">3rd <b>$${pay[2]}</b></span>
+     </div>`;
+
+  const body = document.getElementById('lbBody');
+  if (!ENTRIES.length){
+    body.innerHTML = `<div class="lbempty"><b>No entries locked in yet.</b><br>Picks are gathered on the <b>Make Picks</b> tab; the leaderboard fills in here once the bracket locks and games begin.</div>`;
+    return;
+  }
+  const rows = ENTRIES.map(e => {
+    const s = scoreEntry(e.picks);
+    const champTeam = e.picks && e.picks[104] ? (TEAM_BY_ISO[e.picks[104]] || null) : null;
+    return { name: e.name || '—', champ: champTeam, pts: s.pts, correct: s.correct };
+  }).sort((a,b) => b.pts - a.pts || b.correct - a.correct || a.name.localeCompare(b.name));
+
+  const anyResults = MATCHES.some(m => RESULTS[m.id]);
+  let html = `<table class="lbtable"><thead><tr><th></th><th>Player</th><th class="champ">Champion pick</th><th class="r">Correct</th><th class="r">Points</th></tr></thead><tbody>`;
+  rows.forEach((row, i) => {
+    const rank = i + 1;
+    const cls = rank <= 3 ? ` class="top${rank}"` : '';
+    const payCell = rank <= 3 && pot > 0 ? `<div class="pay">$${pay[rank-1]}</div>` : '';
+    const champ = row.champ ? `<span class="flag">${flagEmoji(row.champ.iso)}</span> ${row.champ.short || row.champ.name}` : '—';
+    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  if (!anyResults) html += `<p style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">Everyone is on 0 until the knockout games begin — standings update automatically as results come in.</p>`;
+  body.innerHTML = html;
+}
+
+const VIEW_IDS = { bracket:'bracketView', schedule:'scheduleView', picks:'picksView', leaderboard:'leaderboardView' };
 function setView(v){
-  const bv = document.getElementById('bracketView'), sv = document.getElementById('scheduleView');
-  document.getElementById('btnBracket').classList.toggle('active', v === 'bracket');
-  document.getElementById('btnSchedule').classList.toggle('active', v === 'schedule');
-  if (v === 'bracket'){ bv.style.display = 'block'; sv.classList.remove('show'); requestAnimationFrame(drawConnectors); }
-  else { bv.style.display = 'none'; sv.classList.add('show'); }
+  Object.entries(VIEW_IDS).forEach(([k,id]) => { document.getElementById(id).style.display = (k === v) ? 'block' : 'none'; });
+  Object.keys(VIEW_IDS).forEach(k => {
+    const b = document.getElementById('btn' + k.charAt(0).toUpperCase() + k.slice(1));
+    if (b) b.classList.toggle('active', k === v);
+  });
+  if (v === 'bracket') requestAnimationFrame(drawConnectors);
+  if (v === 'picks') renderPicks();
+  if (v === 'leaderboard') loadEntries().then(renderLeaderboard);
 }
 
 // ---------- init ----------
