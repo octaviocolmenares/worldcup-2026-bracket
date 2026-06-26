@@ -83,7 +83,7 @@
   .bracketScroll{overflow-x:auto;overflow-y:hidden;margin:12px 0 6px;padding-bottom:8px;
         -webkit-overflow-scrolling:touch;}
   .bracket{position:relative;display:grid;grid-template-columns:repeat(4,1fr) 1.25fr repeat(4,1fr);
-        gap:22px;min-width:1380px;height:1060px;}
+        gap:22px;min-width:1380px;min-height:1040px;}
   .conn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
   .bcol{display:flex;flex-direction:column;justify-content:space-around;align-items:stretch;z-index:1;}
   .bcenter{display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:14px;z-index:1;}
@@ -178,7 +178,7 @@
     /* keep the traced path visible while you swipe the bracket */
     .pathbar.show{position:sticky;top:0;z-index:8;box-shadow:0 8px 18px rgba(4,10,20,.55);}
     .pathbar .psub{font-size:11px;}
-    .bracket{min-width:1180px;height:1000px;gap:16px;}
+    .bracket{min-width:1180px;min-height:1480px;gap:16px;}
     .bn{padding:7px 8px;border-radius:9px;}
     .bn-meta{font-size:9.5px;margin-bottom:5px;}
     .bn-slot{font-size:11.5px;gap:5px;}
@@ -404,10 +404,27 @@ function buildBracket(){
   document.getElementById('bracket').innerHTML = html;
 }
 
+// Size the bracket tall enough that the tallest column's cards all fit with
+// breathing room — prevents the bottom matches being clipped on mobile (where
+// cards wrap to more lines) and keeps parent nodes centred for clean connectors.
+function sizeBracket(){
+  const bracket = document.getElementById('bracket');
+  if (!bracket || !bracket.offsetParent) return;
+  let maxH = 0;
+  bracket.querySelectorAll('.bcol').forEach(col => {
+    let sum = 0, n = 0;
+    col.querySelectorAll('.bn').forEach(node => { sum += node.offsetHeight; n++; });
+    const needed = sum + (n + 1) * 15; // ~15px around each card
+    if (needed > maxH) maxH = needed;
+  });
+  if (maxH > 0) bracket.style.height = Math.ceil(maxH) + 'px';
+}
+
 function drawConnectors(){
   const bracket = document.getElementById('bracket');
   const svg = document.getElementById('conn');
   if (!bracket || !svg || !bracket.offsetParent) return; // hidden -> skip
+  sizeBracket();
   const br = bracket.getBoundingClientRect();
   if (br.height < 10) return;
   svg.setAttribute('width', bracket.clientWidth);
