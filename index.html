@@ -91,15 +91,23 @@
   .bn{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 10px;
         cursor:pointer;transition:border-color .15s, box-shadow .15s, opacity .15s;}
   .bn:hover{border-color:var(--accent2);}
-  .bn-meta{font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
+  .bn-meta{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
   .bn-slot{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:2px 0;line-height:1.25;}
   .bn-slot .flag{font-size:14px;width:18px;text-align:center;flex:0 0 auto;}
+  .bn-slot .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .bn-slot.tbd{color:var(--muted);font-weight:500;font-style:italic;font-size:11.5px;}
+  .bn-score{flex:0 0 auto;font-weight:800;font-variant-numeric:tabular-nums;margin-left:6px;}
+  .bn-slot.win .nm{font-weight:800;color:var(--ink);}
+  .bn-slot.win .bn-score{color:var(--accent);}
+  .bn-slot.lose{opacity:.5;}
+  .bn-ft{flex:0 0 auto;color:var(--accent);font-weight:800;letter-spacing:.03em;}
   .bn-div{border-top:1px solid var(--line);margin:3px 0;}
   .bn-info{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.4;}
   .bn.upcoming .bn-meta:after{content:"";}
   .bn.live{border-color:var(--bad);box-shadow:0 0 0 1px rgba(255,107,107,.3);}
   .bn.done{opacity:.6;}
+  .bn.played{border-color:rgba(43,212,154,.45);}
+  .bn.champ.won{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 22px rgba(255,211,78,.25);}
 
   .bn.final{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,211,78,.1),var(--card));}
   .bn.final .bn-meta{color:var(--gold);font-weight:800;}
@@ -134,14 +142,20 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px;margin-top:10px;}
   .match{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;}
   .match.done{opacity:.55;}
+  .match.played{border-color:rgba(43,212,154,.4);}
   .match.flash{outline:2px solid var(--gold);}
   .mrow{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:9px;}
   .badge{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;}
   .badge.upcoming{background:rgba(58,134,255,.15);color:var(--accent2);}
   .badge.live{background:rgba(255,107,107,.18);color:var(--bad);}
   .badge.done{background:rgba(157,176,205,.15);color:var(--muted);}
+  .badge.played{background:rgba(43,212,154,.18);color:var(--accent);}
   .team{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14.5px;font-weight:600;}
   .team .flag{font-size:17px;width:22px;text-align:center;}
+  .team .nm{flex:1;}
+  .team .t-score{flex:0 0 auto;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;}
+  .team.win .t-score{color:var(--accent);}
+  .team.lose{opacity:.5;}
   .team.tbd{color:var(--muted);font-weight:500;font-size:13px;font-style:italic;}
   .team a{color:var(--accent2);text-decoration:none;font-weight:600;font-size:13px;font-style:normal;}
   .team a:hover{text-decoration:underline;}
@@ -340,6 +354,42 @@ const STAGE_BOUNDS = [
 
 const byId = Object.fromEntries(MATCHES.map(m => [m.id, m]));
 
+/* =================================================================
+   RESULTS — the ONLY block that changes as knockout games are played.
+   Add one entry per finished match; winners propagate automatically
+   to the next round, and scores/champion show up everywhere.
+
+     <matchId>: { hs: <home goals>, as: <away goals>, win: 'home' | 'away' }
+
+   - 'win' is REQUIRED and decides who advances.
+   - For a draw decided on penalties, set 'win' to the shootout winner
+     and add  pens: '4-3'  (home-away shootout score) for display.
+   Examples (leave commented until the game is actually played):
+     73: { hs: 2, as: 1, win: 'home' },
+     81: { hs: 1, as: 1, win: 'home', pens: '4-2' },
+   ================================================================= */
+const RESULTS = {
+};
+
+// Resolve a slot to a concrete team object once its result is known, else null.
+function resolveTeam(slot){
+  if (!slot) return null;
+  if (slot.t === 'team') return slot;
+  if (slot.t === 'win')  return resultWinnerTeam(slot.ref);
+  if (slot.t === 'lose') return resultLoserTeam(slot.ref);
+  return null; // unresolved placeholder (tbd / not played yet)
+}
+function resultWinnerTeam(matchId){
+  const r = RESULTS[matchId]; if (!r) return null;
+  const m = byId[matchId];
+  return resolveTeam(r.win === 'away' ? m.away : m.home);
+}
+function resultLoserTeam(matchId){
+  const r = RESULTS[matchId]; if (!r) return null;
+  const m = byId[matchId];
+  return resolveTeam(r.win === 'away' ? m.home : m.away);
+}
+
 // winner-tree parent map (follow win() refs only; ignore 3rd-place lose() refs)
 const winnerParent = {};
 MATCHES.forEach(m => {
@@ -376,18 +426,28 @@ function statusOf(m, now){
 }
 
 // ---------- bracket node rendering ----------
-function bSlot(slot){
-  if (slot.t === 'team') return `<div class="bn-slot"><span class="flag">${flagEmoji(slot.iso)}</span><span>${slot.short || slot.name}</span></div>`;
+function bSlot(slot, opts){
+  opts = opts || {};
+  const t = resolveTeam(slot);
+  if (t){
+    const score = (opts.score != null) ? `<span class="bn-score">${opts.score}</span>` : '';
+    const wl = opts.played ? (opts.winner ? ' win' : ' lose') : '';
+    return `<div class="bn-slot${wl}"><span class="flag">${flagEmoji(t.iso)}</span><span class="nm">${t.short || t.name}</span>${score}</div>`;
+  }
   if (slot.t === 'tbd'){ const l = slot.label.replace('Runner-up','2nd').replace('Winner','1st'); return `<div class="bn-slot tbd">${l}</div>`; }
   if (slot.t === 'win') return `<div class="bn-slot tbd">Winner&nbsp;#${slot.ref}</div>`;
   if (slot.t === 'lose') return `<div class="bn-slot tbd">Loser&nbsp;#${slot.ref}</div>`;
   return '';
 }
 function bNode(id, cls){
-  const m = byId[id], st = statusOf(m, Date.now());
+  const m = byId[id], r = RESULTS[id];
+  const st = r ? 'played' : statusOf(m, Date.now());
+  const hOpt = r ? {score:r.hs, played:true, winner:r.win === 'home'} : {};
+  const aOpt = r ? {score:r.as, played:true, winner:r.win === 'away'} : {};
+  const ft = r ? `<span class="bn-ft">FT${r.pens ? ' · pens '+r.pens : ''}</span>` : '';
   return `<div class="bn ${st} ${cls||''}" id="bn${id}" onclick="selectMatch(${id})">
-      <div class="bn-meta">Match ${id} · ${fmtDate(m.iso)}</div>
-      ${bSlot(m.home)}<div class="bn-div"></div>${bSlot(m.away)}
+      <div class="bn-meta"><span>Match ${id} · ${fmtDate(m.iso)}</span>${ft}</div>
+      ${bSlot(m.home, hOpt)}<div class="bn-div"></div>${bSlot(m.away, aOpt)}
       <div class="bn-info">📍 ${m.venue} · ${m.city}</div>
       <div class="bn-info">🕒 ${m.etLabel}</div>
     </div>`;
@@ -395,8 +455,12 @@ function bNode(id, cls){
 function colHTML(c){ return `<div class="bcol">${c.ids.map(id => bNode(id)).join('')}</div>`; }
 
 function buildBracket(){
+  const champ = resultWinnerTeam(104);
+  const champHTML = champ
+    ? `<div class="bn champ won"><div class="big">🏆</div><div class="t">${flagEmoji(champ.iso)} ${champ.name}</div><small>World Champion 🎉</small></div>`
+    : `<div class="bn champ"><div class="big">🏆</div><div class="t">World Champion</div><small>Lifts the trophy Jul 19</small></div>`;
   const center = `<div class="bcenter">
-      <div class="bn champ"><div class="big">🏆</div><div class="t">World Champion</div><small>Lifts the trophy Jul 19</small></div>
+      ${champHTML}
       ${bNode(104,'final')}
       ${bNode(103,'third')}
     </div>`;
@@ -470,7 +534,7 @@ function applyHighlight(id){
 function renderPathbar(id){
   const chain = winnerChain(id);
   const sel = byId[id];
-  const teamName = s => s.t === 'team' ? (s.short || s.name) : s.t === 'tbd' ? s.label : (s.t === 'win' ? 'Winner #'+s.ref : 'Loser #'+s.ref);
+  const teamName = s => { const t = resolveTeam(s); return t ? (t.short || t.name) : (s.t === 'tbd' ? s.label : s.t === 'win' ? 'Winner #'+s.ref : 'Loser #'+s.ref); };
   document.getElementById('pathTitle').textContent = `${teamName(sel.home)} vs ${teamName(sel.away)} — road to the Final`;
   document.getElementById('psteps').innerHTML = chain.map(mid => {
     const m = byId[mid];
@@ -494,8 +558,14 @@ function clearSel(){
 }
 
 // ---------- schedule list view ----------
-function slotHTML(slot){
-  if (slot.t === 'team') return `<div class="team"><span class="flag">${flagEmoji(slot.iso)}</span>${slot.name}</div>`;
+function slotHTML(slot, opts){
+  opts = opts || {};
+  const t = resolveTeam(slot);
+  if (t){
+    const score = (opts.score != null) ? `<span class="t-score">${opts.score}</span>` : '';
+    const wl = opts.played ? (opts.winner ? ' win' : ' lose') : '';
+    return `<div class="team${wl}"><span class="flag">${flagEmoji(t.iso)}</span><span class="nm">${t.name}</span>${score}</div>`;
+  }
   if (slot.t === 'tbd') return `<div class="team tbd">${slot.label}</div>`;
   if (slot.t === 'win'){ const m = byId[slot.ref]; return `<div class="team tbd"><a href="#m${slot.ref}" onclick="flash(${slot.ref})">Winner — ${roundLabel(m.round)} #${slot.ref}</a></div>`; }
   if (slot.t === 'lose'){ const m = byId[slot.ref]; return `<div class="team tbd"><a href="#m${slot.ref}" onclick="flash(${slot.ref})">Runner-up — ${roundLabel(m.round)} #${slot.ref}</a></div>`; }
@@ -507,13 +577,17 @@ function buildSchedule(){
   document.getElementById('roundnav').innerHTML = ROUNDS.map(r => `<a href="#round-${r.key}">${r.label}</a>`).join('');
   document.getElementById('sections').innerHTML = ROUNDS.map(r => {
     const cards = MATCHES.filter(m => m.round === r.key).map(m => {
-      const st = statusOf(m, now);
-      const badge = st === 'live' ? 'Live window' : st === 'done' ? 'Kicked off' : 'Upcoming';
+      const r = RESULTS[m.id];
+      const st = r ? 'played' : statusOf(m, now);
+      const badge = st === 'played' ? 'Full time' : st === 'live' ? 'Live window' : st === 'done' ? 'Kicked off' : 'Upcoming';
+      const hOpt = r ? {score:r.hs, played:true, winner:r.win === 'home'} : {};
+      const aOpt = r ? {score:r.as, played:true, winner:r.win === 'away'} : {};
+      const pens = r && r.pens ? ` · won ${r.pens} on penalties` : '';
       const local = m.localLabel ? ` <span style="opacity:.75">/ ${m.localLabel}</span>` : '';
       return `<div class="match ${st}" id="m${m.id}">
           <div class="mrow"><span>Match ${m.id} · ${fmtDate(m.iso)}</span><span class="badge ${st}">${badge}</span></div>
-          ${slotHTML(m.home)}<div class="vsline"></div>${slotHTML(m.away)}
-          <div class="info">🕒 <b>${m.etLabel}</b>${local}<br>📍 ${m.venue} · ${m.city}</div>
+          ${slotHTML(m.home, hOpt)}<div class="vsline"></div>${slotHTML(m.away, aOpt)}
+          <div class="info">🕒 <b>${m.etLabel}</b>${local}<br>📍 ${m.venue} · ${m.city}${pens}</div>
         </div>`;
     }).join('');
     return `<section class="round" id="round-${r.key}"><h2>${r.label} <span class="range">${r.range}</span></h2><div class="grid">${cards}</div></section>`;
