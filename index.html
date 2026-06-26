@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Cup 2026 — Bracket Tracker</title>
+<meta name="description" content="Visual knockout bracket for the 2026 FIFA World Cup — trace any team's path to the Final with dates and venues, handy for planning tickets.">
+<meta property="og:title" content="World Cup 2026 — Bracket Tracker">
+<meta property="og:description" content="Trace any team's path to the Final with dates and venues — Round of 32 through the Final.">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --bg:#0a1626; --bg2:#0d1b2e; --card:#15243b; --line:#27395a; --ink:#eaf1fb;
+    --muted:#9db0cd; --accent:#2bd49a; --accent2:#3a86ff; --gold:#ffd34e; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:linear-gradient(180deg,#0a1626,#0c1a2c 40%,#0a1626);color:var(--ink);
+       -webkit-font-smoothing:antialiased;min-height:100vh;}
+  .wrap{max-width:1480px;margin:0 auto;padding:16px 14px 70px;}
+  header{text-align:center;padding:10px 0 4px;}
+  .trophy{font-size:34px;}
+  h1{font-size:22px;margin:4px 0 2px;letter-spacing:.2px;}
+  .sub{color:var(--muted);font-size:12.5px;}
+  .meta{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:9px;}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;
+        padding:5px 11px;font-size:12px;color:var(--ink);}
+  .chip b{color:var(--gold);}
+
+  /* stepper */
+  .stepper{display:flex;align-items:center;justify-content:center;gap:0;margin:18px 0 6px;flex-wrap:wrap;}
+  .step{display:flex;align-items:center;}
+  .step .dot{width:11px;height:11px;border-radius:50%;background:var(--line);border:2px solid var(--line);}
+  .step .lbl{font-size:11px;color:var(--muted);margin:0 8px;white-space:nowrap;}
+  .step .bar{width:22px;height:2px;background:var(--line);}
+  .step.past .dot{background:var(--accent);border-color:var(--accent);}
+  .step.past .bar{background:var(--accent);}
+  .step.now .dot{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,211,78,.18);}
+  .step.now .lbl{color:var(--gold);font-weight:800;}
+  .step.past .lbl{color:var(--accent);}
+
+  /* banner */
+  .banner{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;
+          margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  .banner.live{border-color:var(--bad);box-shadow:0 0 0 1px rgba(255,107,107,.25);}
+  .banner .tag{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);}
+  .banner.live .tag{color:var(--bad);}
+  .banner .tag .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bad);
+        margin-right:5px;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.25;}100%{opacity:1;}}
+  .banner .teams{font-size:18px;font-weight:800;margin-top:4px;}
+  .banner .when{color:var(--muted);font-size:13px;margin-top:3px;}
+  .banner .go{font-size:12px;color:var(--accent2);border:1px solid var(--accent2);border-radius:999px;
+        padding:7px 13px;white-space:nowrap;text-decoration:none;}
+
+  /* view toggle */
+  .toggle{display:flex;gap:7px;justify-content:center;margin:6px 0 4px;}
+  .toggle button{padding:9px 16px;border-radius:11px;background:var(--card);border:1px solid var(--line);
+        color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer;}
+  .toggle button.active{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .hint{text-align:center;color:var(--muted);font-size:12px;margin:8px 0 4px;}
+  .hint b{color:var(--gold);}
+
+  /* path summary bar */
+  .pathbar{display:none;background:rgba(255,211,78,.07);border:1px solid var(--gold);border-radius:14px;
+        padding:13px 14px;margin:10px 0 4px;}
+  .pathbar.show{display:block;}
+  .pathbar .ptitle{font-size:13px;font-weight:800;color:var(--gold);margin-bottom:3px;display:flex;
+        justify-content:space-between;align-items:center;gap:10px;}
+  .pathbar .psub{font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+  .pclear{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;
+        padding:4px 11px;font-size:11px;cursor:pointer;white-space:nowrap;}
+  .psteps{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;align-items:stretch;}
+  .pchip{flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:10px;
+        padding:8px 11px;min-width:128px;}
+  .pchip b{display:block;font-size:12px;color:var(--gold);margin-bottom:3px;}
+  .pchip span{display:block;font-size:11px;color:var(--muted);line-height:1.45;}
+  .pchip span.v{color:var(--ink);}
+  .parr{display:flex;align-items:center;color:var(--muted);font-size:14px;flex:0 0 auto;}
+
+  /* bracket */
+  .bracketScroll{overflow-x:auto;overflow-y:hidden;margin:12px 0 6px;padding-bottom:8px;
+        -webkit-overflow-scrolling:touch;}
+  .bracket{position:relative;display:grid;grid-template-columns:repeat(4,1fr) 1.25fr repeat(4,1fr);
+        gap:22px;min-width:1380px;height:1060px;}
+  .conn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+  .bcol{display:flex;flex-direction:column;justify-content:space-around;align-items:stretch;z-index:1;}
+  .bcenter{display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:14px;z-index:1;}
+
+  .bn{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 10px;
+        cursor:pointer;transition:border-color .15s, box-shadow .15s, opacity .15s;}
+  .bn:hover{border-color:var(--accent2);}
+  .bn-meta{font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
+  .bn-slot{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:2px 0;line-height:1.25;}
+  .bn-slot .flag{font-size:14px;width:18px;text-align:center;flex:0 0 auto;}
+  .bn-slot.tbd{color:var(--muted);font-weight:500;font-style:italic;font-size:11.5px;}
+  .bn-div{border-top:1px solid var(--line);margin:3px 0;}
+  .bn-info{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.4;}
+  .bn.upcoming .bn-meta:after{content:"";}
+  .bn.live{border-color:var(--bad);box-shadow:0 0 0 1px rgba(255,107,107,.3);}
+  .bn.done{opacity:.6;}
+
+  .bn.final{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,211,78,.1),var(--card));}
+  .bn.final .bn-meta{color:var(--gold);font-weight:800;}
+  .bn.third{border-style:dashed;}
+  .bn.champ{border:1px solid var(--gold);background:rgba(255,211,78,.08);text-align:center;cursor:default;
+        padding:12px 10px;}
+  .bn.champ:hover{border-color:var(--gold);}
+  .bn.champ .big{font-size:24px;line-height:1;}
+  .bn.champ div.t{font-weight:800;color:var(--gold);font-size:13px;margin-top:4px;}
+  .bn.champ small{color:var(--muted);font-size:10.5px;}
+
+  /* selection highlighting */
+  .bracket.sel .bn{opacity:.32;}
+  .bracket.sel .bn.hl{opacity:1;border-color:var(--gold);box-shadow:0 0 0 1px var(--gold);}
+  .bracket.sel .bn.champ{opacity:.55;}
+
+  .legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:8px 0 14px;font-size:11.5px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  /* schedule list view */
+  #scheduleView{display:none;}
+  #scheduleView.show{display:block;}
+  .roundnav{position:sticky;top:0;z-index:5;display:flex;gap:7px;overflow-x:auto;padding:10px 2px;
+        margin:6px 0 16px;background:rgba(10,22,38,.92);backdrop-filter:blur(6px);}
+  .roundnav a{flex:0 0 auto;text-align:center;padding:9px 14px;border-radius:11px;background:var(--card);
+        border:1px solid var(--line);font-weight:700;font-size:13px;color:var(--muted);text-decoration:none;}
+  .roundnav a:hover{border-color:var(--accent2);color:var(--ink);}
+  section.round{margin-bottom:28px;scroll-margin-top:64px;}
+  .round h2{font-size:16px;margin:0 0 3px;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+  .round h2 .range{font-size:12px;color:var(--muted);font-weight:400;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px;margin-top:10px;}
+  .match{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;}
+  .match.done{opacity:.55;}
+  .match.flash{outline:2px solid var(--gold);}
+  .mrow{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:9px;}
+  .badge{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;}
+  .badge.upcoming{background:rgba(58,134,255,.15);color:var(--accent2);}
+  .badge.live{background:rgba(255,107,107,.18);color:var(--bad);}
+  .badge.done{background:rgba(157,176,205,.15);color:var(--muted);}
+  .team{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14.5px;font-weight:600;}
+  .team .flag{font-size:17px;width:22px;text-align:center;}
+  .team.tbd{color:var(--muted);font-weight:500;font-size:13px;font-style:italic;}
+  .team a{color:var(--accent2);text-decoration:none;font-weight:600;font-size:13px;font-style:normal;}
+  .team a:hover{text-decoration:underline;}
+  .vsline{border-top:1px solid var(--line);margin:2px 0;}
+  .info{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.6;}
+  .info b{color:var(--ink);}
+
+  .foot{text-align:center;color:var(--muted);font-size:11px;margin-top:24px;line-height:1.7;}
+  .foot a{color:var(--accent2);text-decoration:none;}
+</style>
+
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:DataSource msdt:dt="string">2;#|0b10eabc-00d3-4553-8252-f6efa1cda259</mso:DataSource>
+<mso:SourceSystemTaxHTField msdt:dt="string">|e1155322-03d8-4904-a51c-d7d7cbd8ca84</mso:SourceSystemTaxHTField>
+<mso:MediaServiceImageTags msdt:dt="string"></mso:MediaServiceImageTags>
+<mso:SourceSystem msdt:dt="string">1;#|e1155322-03d8-4904-a51c-d7d7cbd8ca84</mso:SourceSystem>
+<mso:lcf76f155ced4ddcb4097134ff3c332f msdt:dt="string"></mso:lcf76f155ced4ddcb4097134ff3c332f>
+<mso:TaxCatchAll msdt:dt="string">2;#|0b10eabc-00d3-4553-8252-f6efa1cda259;#1;#|e1155322-03d8-4904-a51c-d7d7cbd8ca84</mso:TaxCatchAll>
+<mso:DataSourceTaxHTField msdt:dt="string">|0b10eabc-00d3-4553-8252-f6efa1cda259</mso:DataSourceTaxHTField>
+<mso:_dlc_DocId msdt:dt="string">3FVPPK2ZVFDN-752815999-52751</mso:_dlc_DocId>
+<mso:_dlc_DocIdItemGuid msdt:dt="string">4fc9d276-c8b3-4b9e-9388-a20ef3c7226f</mso:_dlc_DocIdItemGuid>
+<mso:_dlc_DocIdUrl msdt:dt="string">https://mckinsey.sharepoint.com/sites/spe-int-mcu3ps7wg5vdb/_layouts/15/DocIdRedir.aspx?ID=3FVPPK2ZVFDN-752815999-52751, 3FVPPK2ZVFDN-752815999-52751</mso:_dlc_DocIdUrl>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="trophy">🏆</div>
+    <h1>World Cup 2026 — Bracket Tracker</h1>
+    <div class="sub">Round of 32 → Final · USA · Canada · Mexico</div>
+    <div class="meta">
+      <div class="chip">Knockout stage: <b>Jun 28 – Jul 19, 2026</b></div>
+      <div class="chip">Final: <b>MetLife Stadium, NJ</b></div>
+    </div>
+  </header>
+
+  <div class="stepper" id="stepper"></div>
+  <div id="bannerWrap"></div>
+
+  <div class="toggle">
+    <button id="btnBracket" class="active" onclick="setView('bracket')">🗺️ Bracket</button>
+    <button id="btnSchedule" onclick="setView('schedule')">📋 Schedule list</button>
+  </div>
+
+  <!-- BRACKET VIEW -->
+  <div id="bracketView">
+    <div class="hint" id="bracketHint">👆 <b>Tap any match</b> to light up the road it leads to the Final — with every date &amp; venue along the way, handy for planning tickets.</div>
+
+    <div class="pathbar" id="pathbar">
+      <div class="ptitle"><span id="pathTitle">Road to the Final</span><button class="pclear" onclick="clearSel()">✕ Clear</button></div>
+      <div class="psub">These are the games a team in this slot would play if it keeps winning — each card is a separate ticket (date · venue).</div>
+      <div class="psteps" id="psteps"></div>
+    </div>
+
+    <div class="bracketScroll">
+      <div class="bracket" id="bracket"></div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--accent2)"></i> Upcoming</span>
+      <span><i style="background:var(--bad)"></i> Live window</span>
+      <span><i style="background:var(--muted)"></i> Kicked off / played</span>
+      <span><i style="background:var(--gold)"></i> Selected path</span>
+    </div>
+  </div>
+
+  <!-- SCHEDULE LIST VIEW -->
+  <div id="scheduleView">
+    <div class="roundnav" id="roundnav"></div>
+    <div id="sections"></div>
+  </div>
+
+  <div class="foot">
+    All times ET (US Eastern); the Schedule list also shows local stadium time. Venues are where each <i>slot</i> plays — the matchup fills in as FIFA confirms group results.<br>
+    Schedule per the official 2026 FIFA World Cup fixture list. Fan-made tracker for our office — not affiliated with FIFA.<br>
+    <span id="updated"></span>
+  </div>
+</div>
+
+<script>
+// ---------- slot helpers ----------
+function team(name, iso, short){ return {t:'team', name, iso, short}; }
+function tbd(label){ return {t:'tbd', label}; }
+function win(ref){ return {t:'win', ref}; }
+function lose(ref){ return {t:'lose', ref}; }
+
+// ---------- match data (official 2026 FIFA World Cup knockout schedule) ----------
+const MATCHES = [
+  // Round of 32
+  {id:73, round:'R32', iso:'2026-06-28T15:00:00-04:00', etLabel:'3:00 PM ET', localLabel:'12:00 PM PT', venue:'SoFi Stadium', city:'Inglewood, CA', home:team('South Africa','ZA','South Africa'), away:team('Canada','CA')},
+  {id:76, round:'R32', iso:'2026-06-29T13:00:00-04:00', etLabel:'1:00 PM ET', localLabel:'12:00 PM CT', venue:'NRG Stadium', city:'Houston, TX', home:team('Brazil','BR'), away:team('Japan','JP')},
+  {id:74, round:'R32', iso:'2026-06-29T16:30:00-04:00', etLabel:'4:30 PM ET', venue:'Gillette Stadium', city:'Foxborough, MA', home:team('Germany','DE'), away:tbd('3rd · Group C/D/F')},
+  {id:75, round:'R32', iso:'2026-06-29T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'7:00 PM CT', venue:'Estadio BBVA', city:'Guadalupe, MX', home:team('Netherlands','NL'), away:team('Morocco','MA')},
+  {id:78, round:'R32', iso:'2026-06-30T13:00:00-04:00', etLabel:'1:00 PM ET', localLabel:'12:00 PM CT', venue:'AT&T Stadium', city:'Arlington, TX', home:team('Ivory Coast','CI'), away:tbd('Runner-up · Group I')},
+  {id:77, round:'R32', iso:'2026-06-30T17:00:00-04:00', etLabel:'5:00 PM ET', venue:'MetLife Stadium', city:'E. Rutherford, NJ', home:tbd('Winner · Group I'), away:tbd('3rd · Group D/F/G')},
+  {id:79, round:'R32', iso:'2026-06-30T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'7:00 PM CT', venue:'Estadio Azteca', city:'Mexico City, MX', home:team('Mexico','MX'), away:tbd('3rd · Group C/E/H')},
+  {id:80, round:'R32', iso:'2026-07-01T12:00:00-04:00', etLabel:'12:00 PM ET', venue:'Mercedes-Benz Stadium', city:'Atlanta, GA', home:tbd('Winner · Group L'), away:tbd('3rd · Group E/I/J/K')},
+  {id:82, round:'R32', iso:'2026-07-01T16:00:00-04:00', etLabel:'4:00 PM ET', localLabel:'1:00 PM PT', venue:'Lumen Field', city:'Seattle, WA', home:tbd('Winner · Group G'), away:tbd('3rd · Group A/H/I/J')},
+  {id:81, round:'R32', iso:'2026-07-01T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'5:00 PM PT', venue:"Levi's Stadium", city:'Santa Clara, CA', home:team('United States','US','United States'), away:team('Bosnia and Herzegovina','BA','Bosnia & Herz.')},
+  {id:84, round:'R32', iso:'2026-07-02T15:00:00-04:00', etLabel:'3:00 PM ET', localLabel:'12:00 PM PT', venue:'SoFi Stadium', city:'Inglewood, CA', home:tbd('Winner · Group H'), away:tbd('Runner-up · Group J')},
+  {id:83, round:'R32', iso:'2026-07-02T19:00:00-04:00', etLabel:'7:00 PM ET', venue:'BMO Field', city:'Toronto, CA', home:tbd('Runner-up · Group K'), away:tbd('Runner-up · Group L')},
+  {id:85, round:'R32', iso:'2026-07-02T23:00:00-04:00', etLabel:'11:00 PM ET', localLabel:'8:00 PM PT', venue:'BC Place', city:'Vancouver, CA', home:team('Switzerland','CH'), away:tbd('3rd · Group E/F/G/I/J')},
+  {id:88, round:'R32', iso:'2026-07-03T14:00:00-04:00', etLabel:'2:00 PM ET', localLabel:'1:00 PM CT', venue:'AT&T Stadium', city:'Arlington, TX', home:team('Australia','AU'), away:tbd('Runner-up · Group G')},
+  {id:86, round:'R32', iso:'2026-07-03T18:00:00-04:00', etLabel:'6:00 PM ET', venue:'Hard Rock Stadium', city:'Miami Gardens, FL', home:team('Argentina','AR'), away:tbd('Runner-up · Group H')},
+  {id:87, round:'R32', iso:'2026-07-03T20:30:00-04:00', etLabel:'8:30 PM ET', localLabel:'7:30 PM CT', venue:'Arrowhead Stadium', city:'Kansas City, MO', home:tbd('Winner · Group K'), away:tbd('3rd · Group D/E/I/J/L')},
+
+  // Round of 16
+  {id:90, round:'R16', iso:'2026-07-04T13:00:00-04:00', etLabel:'1:00 PM ET', localLabel:'12:00 PM CT', venue:'NRG Stadium', city:'Houston, TX', home:win(73), away:win(75)},
+  {id:89, round:'R16', iso:'2026-07-04T17:00:00-04:00', etLabel:'5:00 PM ET', venue:'Lincoln Financial Field', city:'Philadelphia, PA', home:win(74), away:win(77)},
+  {id:91, round:'R16', iso:'2026-07-05T16:00:00-04:00', etLabel:'4:00 PM ET', venue:'MetLife Stadium', city:'E. Rutherford, NJ', home:win(76), away:win(78)},
+  {id:92, round:'R16', iso:'2026-07-05T19:00:00-04:00', etLabel:'7:00 PM ET', localLabel:'6:00 PM CT', venue:'Estadio Azteca', city:'Mexico City, MX', home:win(79), away:win(80)},
+  {id:93, round:'R16', iso:'2026-07-06T14:00:00-04:00', etLabel:'2:00 PM ET', localLabel:'1:00 PM CT', venue:'AT&T Stadium', city:'Arlington, TX', home:win(83), away:win(84)},
+  {id:94, round:'R16', iso:'2026-07-06T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'5:00 PM PT', venue:'Lumen Field', city:'Seattle, WA', home:win(81), away:win(82)},
+  {id:95, round:'R16', iso:'2026-07-07T12:00:00-04:00', etLabel:'12:00 PM ET', venue:'Mercedes-Benz Stadium', city:'Atlanta, GA', home:win(86), away:win(88)},
+  {id:96, round:'R16', iso:'2026-07-07T16:00:00-04:00', etLabel:'4:00 PM ET', localLabel:'1:00 PM PT', venue:'BC Place', city:'Vancouver, CA', home:win(85), away:win(87)},
+
+  // Quarterfinals
+  {id:97, round:'QF', iso:'2026-07-09T16:00:00-04:00', etLabel:'4:00 PM ET', venue:'Gillette Stadium', city:'Foxborough, MA', home:win(89), away:win(90)},
+  {id:98, round:'QF', iso:'2026-07-10T15:00:00-04:00', etLabel:'3:00 PM ET', localLabel:'12:00 PM PT', venue:'SoFi Stadium', city:'Inglewood, CA', home:win(93), away:win(94)},
+  {id:99, round:'QF', iso:'2026-07-11T17:00:00-04:00', etLabel:'5:00 PM ET', venue:'Hard Rock Stadium', city:'Miami Gardens, FL', home:win(91), away:win(92)},
+  {id:100, round:'QF', iso:'2026-07-11T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'7:00 PM CT', venue:'Arrowhead Stadium', city:'Kansas City, MO', home:win(95), away:win(96)},
+
+  // Semifinals
+  {id:101, round:'SF', iso:'2026-07-14T14:00:00-04:00', etLabel:'2:00 PM ET', localLabel:'1:00 PM CT', venue:'AT&T Stadium', city:'Arlington, TX', home:win(97), away:win(98)},
+  {id:102, round:'SF', iso:'2026-07-15T15:00:00-04:00', etLabel:'3:00 PM ET', venue:'Mercedes-Benz Stadium', city:'Atlanta, GA', home:win(99), away:win(100)},
+
+  // Third place
+  {id:103, round:'3RD', iso:'2026-07-18T17:00:00-04:00', etLabel:'5:00 PM ET', venue:'Hard Rock Stadium', city:'Miami Gardens, FL', home:lose(101), away:lose(102)},
+
+  // Final
+  {id:104, round:'F', iso:'2026-07-19T15:00:00-04:00', etLabel:'3:00 PM ET', venue:'MetLife Stadium', city:'E. Rutherford, NJ', home:win(101), away:win(102)},
+];
+
+const ROUNDS = [
+  {key:'R32', label:'Round of 32', range:'Jun 28 – Jul 3'},
+  {key:'R16', label:'Round of 16', range:'Jul 4 – Jul 7'},
+  {key:'QF',  label:'Quarterfinals', range:'Jul 9 – Jul 11'},
+  {key:'SF',  label:'Semifinals', range:'Jul 14 – Jul 15'},
+  {key:'3RD', label:'Third-Place Match', range:'Jul 18'},
+  {key:'F',   label:'Final', range:'Jul 19'},
+];
+const ROUND_SHORT = {R32:'R32', R16:'R16', QF:'QF', SF:'Semi', '3RD':'3rd', F:'FINAL'};
+const STAGE_BOUNDS = [
+  {key:'GROUP', label:'Group Stage', end:'2026-06-27'},
+  {key:'R32', label:'Round of 32', end:'2026-07-03'},
+  {key:'R16', label:'Round of 16', end:'2026-07-07'},
+  {key:'QF', label:'Quarterfinals', end:'2026-07-11'},
+  {key:'SF', label:'Semifinals', end:'2026-07-15'},
+  {key:'3RD', label:'3rd Place', end:'2026-07-18'},
+  {key:'F', label:'Final', end:'2026-07-19'},
+];
+
+const byId = Object.fromEntries(MATCHES.map(m => [m.id, m]));
+
+// winner-tree parent map (follow win() refs only; ignore 3rd-place lose() refs)
+const winnerParent = {};
+MATCHES.forEach(m => {
+  [m.home, m.away].forEach(s => { if (s.t === 'win') winnerParent[s.ref] = m.id; });
+});
+
+// explicit column layouts (ordered so connectors never cross)
+const leftCols = [
+  {key:'R32', ids:[74,77,73,75,83,84,81,82]},
+  {key:'R16', ids:[89,90,93,94]},
+  {key:'QF',  ids:[97,98]},
+  {key:'SF',  ids:[101]},
+];
+const rightCols = [
+  {key:'SF',  ids:[102]},
+  {key:'QF',  ids:[99,100]},
+  {key:'R16', ids:[91,92,95,96]},
+  {key:'R32', ids:[76,78,79,80,86,88,85,87]},
+];
+const leftIds = new Set([].concat(...leftCols.map(c => c.ids)));
+function half(id){ return leftIds.has(id) ? 'L' : 'R'; }
+
+let selected = null;
+
+// ---------- helpers ----------
+function flagEmoji(iso){ return iso.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0))); }
+function roundLabel(key){ const r = ROUNDS.find(r => r.key === key); return r ? r.label : key; }
+function fmtDate(iso){ return new Date(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'America/New_York'}); }
+function statusOf(m, now){
+  const k = new Date(m.iso).getTime(), end = k + 3*60*60*1000;
+  if (now > end) return 'done';
+  if (now >= k && now <= end) return 'live';
+  return 'upcoming';
+}
+
+// ---------- bracket node rendering ----------
+function bSlot(slot){
+  if (slot.t === 'team') return `<div class="bn-slot"><span class="flag">${flagEmoji(slot.iso)}</span><span>${slot.short || slot.name}</span></div>`;
+  if (slot.t === 'tbd'){ const l = slot.label.replace('Runner-up','2nd').replace('Winner','1st'); return `<div class="bn-slot tbd">${l}</div>`; }
+  if (slot.t === 'win') return `<div class="bn-slot tbd">Winner&nbsp;#${slot.ref}</div>`;
+  if (slot.t === 'lose') return `<div class="bn-slot tbd">Loser&nbsp;#${slot.ref}</div>`;
+  return '';
+}
+function bNode(id, cls){
+  const m = byId[id], st = statusOf(m, Date.now());
+  return `<div class="bn ${st} ${cls||''}" id="bn${id}" onclick="selectMatch(${id})">
+      <div class="bn-meta">Match ${id} · ${fmtDate(m.iso)}</div>
+      ${bSlot(m.home)}<div class="bn-div"></div>${bSlot(m.away)}
+      <div class="bn-info">📍 ${m.venue} · ${m.city}</div>
+      <div class="bn-info">🕒 ${m.etLabel}</div>
+    </div>`;
+}
+function colHTML(c){ return `<div class="bcol">${c.ids.map(id => bNode(id)).join('')}</div>`; }
+
+function buildBracket(){
+  const center = `<div class="bcenter">
+      <div class="bn champ"><div class="big">🏆</div><div class="t">World Champion</div><small>Lifts the trophy Jul 19</small></div>
+      ${bNode(104,'final')}
+      ${bNode(103,'third')}
+    </div>`;
+  const html = leftCols.map(colHTML).join('') + center + rightCols.map(colHTML).join('') + `<svg class="conn" id="conn"></svg>`;
+  document.getElementById('bracket').innerHTML = html;
+}
+
+function drawConnectors(){
+  const bracket = document.getElementById('bracket');
+  const svg = document.getElementById('conn');
+  if (!bracket || !svg || !bracket.offsetParent) return; // hidden -> skip
+  const br = bracket.getBoundingClientRect();
+  if (br.height < 10) return;
+  svg.setAttribute('width', bracket.clientWidth);
+  svg.setAttribute('height', bracket.clientHeight);
+  svg.setAttribute('viewBox', `0 0 ${bracket.clientWidth} ${bracket.clientHeight}`);
+  let paths = '';
+  for (const childId in winnerParent){
+    const cId = +childId, pId = winnerParent[childId];
+    const cEl = document.getElementById('bn'+cId), pEl = document.getElementById('bn'+pId);
+    if (!cEl || !pEl) continue;
+    const cr = cEl.getBoundingClientRect(), pr = pEl.getBoundingClientRect();
+    const side = half(cId);
+    let sx, sy, ex, ey;
+    sy = cr.top - br.top + cr.height/2;
+    ey = pr.top - br.top + pr.height/2;
+    if (side === 'L'){ sx = cr.right - br.left; ex = pr.left - br.left; }
+    else { sx = cr.left - br.left; ex = pr.right - br.left; }
+    const mx = (sx + ex) / 2;
+    paths += `<path id="e${cId}_${pId}" d="M ${sx} ${sy} H ${mx} V ${ey} H ${ex}" fill="none" stroke="var(--line)" stroke-width="2"></path>`;
+  }
+  svg.innerHTML = paths;
+  if (selected) applyHighlight(selected); // re-apply after redraw
+}
+
+// ---------- selection / path-to-final ----------
+function winnerChain(id){
+  const arr = [id]; let cur = id;
+  while (winnerParent[cur] != null){ cur = winnerParent[cur]; arr.push(cur); }
+  return arr; // selected ... -> 104
+}
+function applyHighlight(id){
+  const bracket = document.getElementById('bracket');
+  const chain = winnerChain(id);
+  bracket.classList.add('sel');
+  document.querySelectorAll('.bn.hl').forEach(e => e.classList.remove('hl'));
+  document.querySelectorAll('.conn path').forEach(p => { p.setAttribute('stroke','var(--line)'); p.setAttribute('stroke-width','2'); });
+  chain.forEach(mid => { const el = document.getElementById('bn'+mid); if (el) el.classList.add('hl'); });
+  for (let i = 0; i < chain.length - 1; i++){
+    const seg = document.getElementById(`e${chain[i]}_${chain[i+1]}`);
+    if (seg){ seg.setAttribute('stroke','var(--gold)'); seg.setAttribute('stroke-width','3.5'); }
+  }
+}
+function renderPathbar(id){
+  const chain = winnerChain(id);
+  const sel = byId[id];
+  const teamName = s => s.t === 'team' ? (s.short || s.name) : s.t === 'tbd' ? s.label : (s.t === 'win' ? 'Winner #'+s.ref : 'Loser #'+s.ref);
+  document.getElementById('pathTitle').textContent = `${teamName(sel.home)} vs ${teamName(sel.away)} — road to the Final`;
+  document.getElementById('psteps').innerHTML = chain.map(mid => {
+    const m = byId[mid];
+    return `<div class="pchip"><b>${ROUND_SHORT[m.round]}</b><span>${fmtDate(m.iso)} · ${m.etLabel}</span><span class="v">${m.venue}</span><span>${m.city}</span></div>`;
+  }).join('<span class="parr">→</span>');
+  document.getElementById('pathbar').classList.add('show');
+}
+function selectMatch(id){
+  if (selected === id){ clearSel(); return; }
+  selected = id;
+  applyHighlight(id);
+  renderPathbar(id);
+}
+function clearSel(){
+  selected = null;
+  const bracket = document.getElementById('bracket');
+  bracket.classList.remove('sel');
+  document.querySelectorAll('.bn.hl').forEach(e => e.classList.remove('hl'));
+  document.querySelectorAll('.conn path').forEach(p => { p.setAttribute('stroke','var(--line)'); p.setAttribute('stroke-width','2'); });
+  document.getElementById('pathbar').classList.remove('show');
+}
+
+// ---------- schedule list view ----------
+function slotHTML(slot){
+  if (slot.t === 'team') return `<div class="team"><span class="flag">${flagEmoji(slot.iso)}</span>${slot.name}</div>`;
+  if (slot.t === 'tbd') return `<div class="team tbd">${slot.label}</div>`;
+  if (slot.t === 'win'){ const m = byId[slot.ref]; return `<div class="team tbd"><a href="#m${slot.ref}" onclick="flash(${slot.ref})">Winner — ${roundLabel(m.round)} #${slot.ref}</a></div>`; }
+  if (slot.t === 'lose'){ const m = byId[slot.ref]; return `<div class="team tbd"><a href="#m${slot.ref}" onclick="flash(${slot.ref})">Runner-up — ${roundLabel(m.round)} #${slot.ref}</a></div>`; }
+  return '';
+}
+function flash(id){ const el = document.getElementById('m'+id); if (!el) return; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1500); }
+function buildSchedule(){
+  const now = Date.now();
+  document.getElementById('roundnav').innerHTML = ROUNDS.map(r => `<a href="#round-${r.key}">${r.label}</a>`).join('');
+  document.getElementById('sections').innerHTML = ROUNDS.map(r => {
+    const cards = MATCHES.filter(m => m.round === r.key).map(m => {
+      const st = statusOf(m, now);
+      const badge = st === 'live' ? 'Live window' : st === 'done' ? 'Kicked off' : 'Upcoming';
+      const local = m.localLabel ? ` <span style="opacity:.75">/ ${m.localLabel}</span>` : '';
+      return `<div class="match ${st}" id="m${m.id}">
+          <div class="mrow"><span>Match ${m.id} · ${fmtDate(m.iso)}</span><span class="badge ${st}">${badge}</span></div>
+          ${slotHTML(m.home)}<div class="vsline"></div>${slotHTML(m.away)}
+          <div class="info">🕒 <b>${m.etLabel}</b>${local}<br>📍 ${m.venue} · ${m.city}</div>
+        </div>`;
+    }).join('');
+    return `<section class="round" id="round-${r.key}"><h2>${r.label} <span class="range">${r.range}</span></h2><div class="grid">${cards}</div></section>`;
+  }).join('');
+}
+
+// ---------- top widgets ----------
+function buildStepperAndBanner(){
+  const now = Date.now();
+  const today = new Date().toISOString().slice(0,10);
+  let cur = STAGE_BOUNDS.findIndex(s => today <= s.end);
+  if (cur === -1) cur = STAGE_BOUNDS.length - 1;
+  document.getElementById('stepper').innerHTML = STAGE_BOUNDS.map((s,i) => {
+    const cls = i < cur ? 'past' : i === cur ? 'now' : '';
+    const bar = i < STAGE_BOUNDS.length-1 ? `<span class="bar"></span>` : '';
+    return `<span class="step ${cls}"><span class="dot"></span><span class="lbl">${s.label}</span>${bar}</span>`;
+  }).join('');
+
+  const live = MATCHES.find(m => statusOf(m, now) === 'live');
+  const next = MATCHES.filter(m => statusOf(m, now) === 'upcoming').sort((a,b) => new Date(a.iso) - new Date(b.iso))[0];
+  const nm = s => s.t === 'team' ? s.name : s.t === 'tbd' ? s.label : (s.t === 'win' ? 'Winner #'+s.ref : 'Loser #'+s.ref);
+  function banner(m, isLive){
+    return `<div class="banner ${isLive?'live':''}"><div>
+        <div class="tag">${isLive?'<span class="pulse"></span>Live window':'Next match'}</div>
+        <div class="teams">${nm(m.home)} vs ${nm(m.away)}</div>
+        <div class="when">${fmtDate(m.iso)} · ${m.etLabel} · ${m.venue}, ${m.city}</div>
+      </div><a class="go" href="#bn${m.id}" onclick="setView('bracket')">View in bracket →</a></div>`;
+  }
+  const w = document.getElementById('bannerWrap');
+  if (live) w.innerHTML = banner(live, true);
+  else if (next) w.innerHTML = banner(next, false);
+  else w.innerHTML = `<div class="banner"><div><div class="tag">🏆 Tournament complete</div><div class="teams">See the Final, Match 104</div></div><a class="go" href="#bn104" onclick="setView('bracket')">View →</a></div>`;
+}
+
+// ---------- view switching ----------
+function setView(v){
+  const bv = document.getElementById('bracketView'), sv = document.getElementById('scheduleView');
+  document.getElementById('btnBracket').classList.toggle('active', v === 'bracket');
+  document.getElementById('btnSchedule').classList.toggle('active', v === 'schedule');
+  if (v === 'bracket'){ bv.style.display = 'block'; sv.classList.remove('show'); requestAnimationFrame(drawConnectors); }
+  else { bv.style.display = 'none'; sv.classList.add('show'); }
+}
+
+// ---------- init ----------
+buildStepperAndBanner();
+buildBracket();
+buildSchedule();
+document.getElementById('updated').textContent = 'Page built ' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '.';
+requestAnimationFrame(drawConnectors);
+setTimeout(drawConnectors, 250);
+window.addEventListener('load', drawConnectors);
+let rT; window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(drawConnectors, 150); });
+</script>
+</body>
+</html>
