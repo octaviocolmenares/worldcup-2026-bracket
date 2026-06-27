@@ -187,6 +187,18 @@
   /* ---------- pool: picks + leaderboard ---------- */
   #picksView, #leaderboardView{display:none;}
   #bracketView, #scheduleView, #picksView, #leaderboardView{animation:fadeUp .28s ease;}
+  .potbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+        background:linear-gradient(135deg,rgba(255,210,74,.16),rgba(39,214,160,.1));
+        border:1px solid var(--gold);border-radius:16px;padding:15px 18px;margin:6px 0 14px;box-shadow:var(--shadow);}
+  .potbar .potmain{display:flex;align-items:baseline;gap:10px;}
+  .potbar .potamt{font-size:30px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;}
+  .potbar .potlbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+  .potbar .potsplit{display:flex;gap:7px;flex-wrap:wrap;}
+  .potbar .ps{background:rgba(9,19,33,.5);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;}
+  .potbar .ps b{color:var(--ink);}
+  .bonuscard{background:rgba(75,141,255,.07);border:1px solid var(--line);border-radius:13px;padding:13px 14px;margin-bottom:14px;}
+  .bonushd{font-size:13px;font-weight:800;margin-bottom:10px;}
+  .bonushd span{font-weight:500;color:var(--muted);font-size:11.5px;}
   .poolcard{background:var(--grad-card);border:1px solid var(--line);border-radius:16px;padding:17px 18px;margin:6px 0 14px;box-shadow:var(--shadow);}
   .poolcard h2{margin:0 0 8px;font-size:17px;}
   .poolcard p{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.6;}
@@ -244,6 +256,7 @@
   .lbtable tr.top2 .rank,.lbtable tr.top3 .rank{color:var(--accent);}
   .lbtable .pts{font-weight:800;color:var(--accent);}
   .lbtable .pay{font-size:11px;color:var(--gold);}
+  .lbtable .bonusline{font-size:10.5px;color:var(--muted);margin-top:3px;}
   .lbtable .champ{color:var(--muted);}
   .lbempty{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 18px;text-align:center;color:var(--muted);}
   .lbempty b{color:var(--ink);}
@@ -373,11 +386,14 @@
     <input type="text" name="name" />
     <input type="email" name="email" />
     <input type="hidden" name="picks" />
+    <input type="text" name="potm" />
+    <input type="text" name="scorer" />
     <input type="text" name="bot-field" />
   </form>
 
   <!-- MAKE PICKS VIEW -->
   <div id="picksView">
+    <div class="potbar" id="potPicks"></div>
     <div class="poolcard">
       <h2>🎯 Office Bracket Pool</h2>
       <p id="poolRules"></p>
@@ -390,6 +406,13 @@
       <div class="pickfields">
         <label>Your name <input type="text" id="pkName" maxlength="40" placeholder="e.g. Octavio C." required></label>
         <label>Email or Slack <span class="opt">(required — one entry per person)</span> <input type="text" id="pkEmail" maxlength="60" placeholder="you@company.com" required></label>
+      </div>
+      <div class="bonuscard">
+        <div class="bonushd">⭐ Bonus picks <span>worth points + used to break ties</span></div>
+        <div class="pickfields">
+          <label>🏅 Player of the Tournament <input type="text" id="pkPotm" maxlength="40" placeholder="e.g. Kylian Mbappé" required></label>
+          <label>⚽ Top Goalscorer (Golden Boot) <input type="text" id="pkScorer" maxlength="40" placeholder="e.g. Harry Kane" required></label>
+        </div>
       </div>
       <div class="champpick" id="champPick"></div>
       <div id="picksRounds"></div>
@@ -405,6 +428,7 @@
 
   <!-- LEADERBOARD VIEW -->
   <div id="leaderboardView">
+    <div class="potbar" id="potLb"></div>
     <div class="poolcard" id="lbInfo"></div>
     <div id="lbBody"></div>
   </div>
@@ -768,7 +792,33 @@ function buildStepperAndBanner(){
 // ---------- view switching ----------
 /* =====================  OFFICE BRACKET POOL  ===================== */
 // Adjust the entry fee here if you like; payout split is 60/30/10 to top 3.
-const POOL = { entryFee: 20, split: [0.6, 0.3, 0.1] };
+const POOL = {
+  entryFee: 20,
+  split: [0.6, 0.3, 0.1],
+  bonus: { potm: 10, scorer: 10 },  // points for a correct bonus pick
+  // Filled in at the end of the tournament so bonus picks can be scored:
+  awards: { potm: '', scorer: '' }  // e.g. potm:'Lamine Yamal', scorer:'Kylian Mbappé'
+};
+// Loose, forgiving match for free-typed bonus answers (case/spacing/accents).
+function normName(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
+function bonusPoints(entry){
+  let p = 0;
+  if (POOL.awards.potm && entry.potm && normName(entry.potm) === normName(POOL.awards.potm)) p += POOL.bonus.potm;
+  if (POOL.awards.scorer && entry.scorer && normName(entry.scorer) === normName(POOL.awards.scorer)) p += POOL.bonus.scorer;
+  return p;
+}
+let myBonus = {};
+try { myBonus = JSON.parse(localStorage.getItem('wc26bonus') || '{}') || {}; } catch(e){ myBonus = {}; }
+function saveBonus(){ try { localStorage.setItem('wc26bonus', JSON.stringify(myBonus)); } catch(e){} }
+
+// Prominent pot tracker (driven by the compiled entries).
+function renderPot(elId){
+  const el = document.getElementById(elId); if (!el) return;
+  const n = ENTRIES.length, pot = n * POOL.entryFee;
+  const pay = POOL.split.map(s => Math.round(pot * s));
+  el.innerHTML = `<div class="potmain"><span class="potamt">$${pot}</span><span class="potlbl">in the pot · ${n} ${n===1?'entry':'entries'} × $${POOL.entryFee}</span></div>
+    <div class="potsplit"><span class="ps">🥇 <b>$${pay[0]}</b></span><span class="ps">🥈 <b>$${pay[1]}</b></span><span class="ps">🥉 <b>$${pay[2]}</b></span></div>`;
+}
 // Points awarded for each correctly-picked game winner, by round.
 const POINTS = { R32:1, R16:2, QF:4, SF:8, F:16 };
 const PICK_ROUNDS = [['R32','Round of 32'],['R16','Round of 16'],['QF','Quarterfinals'],['SF','Semifinals'],['F','Final']];
@@ -843,13 +893,15 @@ function renderPicks(){
   // rules card
   document.getElementById('poolRules').innerHTML =
     `Pick the winner of <b>every knockout game</b> — Round of 32 through the Final. Points: ` +
-    `<b>1</b> · R32, <b>2</b> · R16, <b>4</b> · QF, <b>8</b> · Semis, <b>16</b> · champion. ` +
-    `Highest total wins. Entry is <b>$${POOL.entryFee}</b>; the pot pays <b>60% / 30% / 10%</b> to 1st / 2nd / 3rd. ` +
-    `Money is settled in person — the site just tracks picks &amp; scores.`;
+    `<b>1</b> · R32, <b>2</b> · R16, <b>4</b> · QF, <b>8</b> · Semis, <b>16</b> · champion, ` +
+    `plus <b>+${POOL.bonus.potm}</b> each for a correct Player of the Tournament &amp; Top Goalscorer. ` +
+    `Highest total wins; the bonus picks also break ties. Entry is <b>$${POOL.entryFee}</b>; the pot pays ` +
+    `<b>60% / 30% / 10%</b> to 1st / 2nd / 3rd. Money is settled in person — the site just tracks picks &amp; scores.`;
   document.getElementById('poolMeta').innerHTML =
     `<span class="pill">Entry <b>$${POOL.entryFee}</b></span>` +
     `<span class="pill">Payout <b>60/30/10</b></span>` +
     `<span class="pill">Locks <b>${fmtDate(LOCK_ISO)}, ${byId[73].etLabel}</b></span>`;
+  renderPot('potPicks');
 
   const form = document.getElementById('picksForm');
   const thanks = document.getElementById('picksThanks');
@@ -867,6 +919,10 @@ function renderPicks(){
     return;
   }
   thanks.hidden = true; form.hidden = false;
+
+  const peEl = document.getElementById('pkPotm'), seEl = document.getElementById('pkScorer');
+  if (peEl && !peEl.value) peEl.value = myBonus.potm || '';
+  if (seEl && !seEl.value) seEl.value = myBonus.scorer || '';
 
   lockEl.hidden = !locked;
   if (locked) lockEl.textContent = '🔒 Picks are closed — the knockout stage has started. Head to the Leaderboard to follow the standings.';
@@ -903,13 +959,19 @@ function submitPicks(e){
   if (!name){ alert('Please enter your name.'); return false; }
   const email = document.getElementById('pkEmail').value.trim();
   if (!email){ alert('Please add your email or Slack handle — it ties the entry to you (one entry per person).'); return false; }
+  const potm = document.getElementById('pkPotm').value.trim();
+  const scorer = document.getElementById('pkScorer').value.trim();
+  if (!potm || !scorer){ alert('Please fill in both bonus picks: Player of the Tournament and Top Goalscorer.'); return false; }
   const done = PICK_IDS.filter(id => myPicks[id]).length;
   if (done < PICK_IDS.length){ alert(`Please pick all ${PICK_IDS.length} games first (${done} done).`); return false; }
+  myBonus = { potm, scorer }; saveBonus();
   const body = new URLSearchParams();
   body.append('form-name', 'bracket-picks');
   body.append('name', name);
   body.append('email', email);
   body.append('picks', JSON.stringify(myPicks));
+  body.append('potm', potm);
+  body.append('scorer', scorer);
   const btn = document.getElementById('pkSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
   fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
     .then(r => { if (!r.ok) throw new Error(r.status); markSubmitted(name); editingPicks = false; renderPicks(); window.scrollTo({top:0,behavior:'smooth'}); })
@@ -926,8 +988,8 @@ function loadEntries(){
     .catch(() => { ENTRIES = []; });
 }
 function actualWinnerIso(gameId){ const t = resultWinnerTeam(gameId); return t ? t.iso : null; }
-function scoreEntry(picks){
-  picks = picks || {};
+function scoreEntry(entry){
+  const picks = (entry && entry.picks) || {};
   let pts = 0, correct = 0, decided = 0;
   MATCHES.forEach(m => {
     if (m.round === '3RD') return;
@@ -936,32 +998,32 @@ function scoreEntry(picks){
     decided++;
     if (picks[m.id] && picks[m.id] === aw){ pts += POINTS[m.round]; correct++; }
   });
-  return { pts, correct, decided };
+  const bonus = bonusPoints(entry || {});
+  return { pts: pts + bonus, bracketPts: pts, bonus, correct, decided };
 }
 function renderLeaderboard(){
-  const pot = ENTRIES.length * POOL.entryFee;
-  const pay = POOL.split.map(s => Math.round(pot * s));
+  renderPot('potLb');
   document.getElementById('lbInfo').innerHTML =
     `<h2>🏆 Leaderboard</h2>
-     <div class="poolmeta">
-       <span class="pill">Entries <b>${ENTRIES.length}</b></span>
-       <span class="pill">Pot <b>$${pot}</b></span>
-       <span class="pill">1st <b>$${pay[0]}</b></span>
-       <span class="pill">2nd <b>$${pay[1]}</b></span>
-       <span class="pill">3rd <b>$${pay[2]}</b></span>
-     </div>`;
+     <p style="margin:0;color:var(--muted);font-size:12.5px">Ranked by points (bracket + bonus). Ties broken by games correct, then a correct Player of the Tournament, then Top Goalscorer.</p>`;
 
   const body = document.getElementById('lbBody');
   if (!ENTRIES.length){
     body.innerHTML = `<div class="lbempty"><b>No entries locked in yet.</b><br>Picks are gathered on the <b>Make Picks</b> tab; the leaderboard fills in here once the bracket locks and games begin.</div>`;
     return;
   }
+  const aw = POOL.awards;
   const rows = ENTRIES.map(e => {
-    const s = scoreEntry(e.picks);
+    const s = scoreEntry(e);
     const champTeam = e.picks && e.picks[104] ? (TEAM_BY_ISO[e.picks[104]] || null) : null;
-    return { name: e.name || '—', champ: champTeam, pts: s.pts, correct: s.correct };
-  }).sort((a,b) => b.pts - a.pts || b.correct - a.correct || a.name.localeCompare(b.name));
+    const potmRight = !!(aw.potm && e.potm && normName(e.potm) === normName(aw.potm));
+    const scorerRight = !!(aw.scorer && e.scorer && normName(e.scorer) === normName(aw.scorer));
+    return { name: e.name || '—', champ: champTeam, pts: s.pts, bonus: s.bonus, correct: s.correct,
+             potm: e.potm || '', scorer: e.scorer || '', potmRight, scorerRight };
+  }).sort((a,b) => b.pts - a.pts || b.correct - a.correct || (b.potmRight - a.potmRight) || (b.scorerRight - a.scorerRight) || a.name.localeCompare(b.name));
 
+  const pot = ENTRIES.length * POOL.entryFee;
+  const pay = POOL.split.map(s => Math.round(pot * s));
   const anyResults = MATCHES.some(m => RESULTS[m.id]);
   let html = `<table class="lbtable"><thead><tr><th></th><th>Player</th><th class="champ">Champion pick</th><th class="r">Correct</th><th class="r">Points</th></tr></thead><tbody>`;
   rows.forEach((row, i) => {
@@ -969,7 +1031,9 @@ function renderLeaderboard(){
     const cls = rank <= 3 ? ` class="top${rank}"` : '';
     const payCell = rank <= 3 && pot > 0 ? `<div class="pay">$${pay[rank-1]}</div>` : '';
     const champ = row.champ ? `<span class="flag">${flagEmoji(row.champ.iso)}</span> ${row.champ.short || row.champ.name}` : '—';
-    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
+    const bonusLine = (row.potm || row.scorer)
+      ? `<div class="bonusline">🏅 ${row.potm || '—'}${row.potmRight?' ✓':''} · ⚽ ${row.scorer || '—'}${row.scorerRight?' ✓':''}</div>` : '';
+    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
   });
   html += `</tbody></table>`;
   if (!anyResults) html += `<p style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">Everyone is on 0 until the knockout games begin — standings update automatically as results come in.</p>`;
@@ -984,7 +1048,7 @@ function setView(v){
     if (b) b.classList.toggle('active', k === v);
   });
   if (v === 'bracket') requestAnimationFrame(drawConnectors);
-  if (v === 'picks') renderPicks();
+  if (v === 'picks') loadEntries().then(renderPicks);
   if (v === 'leaderboard') loadEntries().then(renderLeaderboard);
 }
 
