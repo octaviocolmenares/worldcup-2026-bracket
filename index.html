@@ -234,6 +234,9 @@
   .pkopt.sel:after{content:"✓";margin-left:auto;color:var(--accent);font-weight:800;}
   .pkopt.empty{cursor:default;color:var(--muted);font-style:italic;font-weight:500;font-size:12px;background:transparent;border-style:dashed;}
   .pkopt.empty:hover{border-color:var(--line);}
+  .byerow{grid-template-columns:30px 1fr;}
+  .pkbye{background:rgba(255,210,74,.08);border:1px dashed var(--gold);border-radius:11px;padding:11px 13px;font-size:12.5px;color:var(--ink);}
+  .pkbye span{color:var(--muted);}
 
   .picksfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;position:sticky;bottom:0;
         background:linear-gradient(180deg,transparent,var(--bg) 40%);padding:12px 0 6px;}
@@ -578,7 +581,7 @@ let selected = null;
 
 // ---------- helpers ----------
 const SUBFLAG = { 'gb-eng':'🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'gb-sct':'🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'gb-wls':'🏴󠁧󠁢󠁷󠁬󠁳󠁿' };
-function flagEmoji(iso){ const k = iso.toLowerCase(); if (SUBFLAG[k]) return SUBFLAG[k]; return iso.slice(0,2).toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0))); }
+function flagEmoji(iso){ if (/^BYE/.test(iso)) return '🆚'; const k = iso.toLowerCase(); if (SUBFLAG[k]) return SUBFLAG[k]; return iso.slice(0,2).toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0))); }
 function roundLabel(key){ const r = ROUNDS.find(r => r.key === key); return r ? r.label : key; }
 function fmtDate(iso){ return new Date(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'America/New_York'}); }
 function statusOf(m, now){
@@ -822,15 +825,26 @@ function renderPot(elId){
 // Points awarded for each correctly-picked game winner, by round.
 const POINTS = { R32:1, R16:2, QF:4, SF:8, F:16 };
 const PICK_ROUNDS = [['R32','Round of 32'],['R16','Round of 16'],['QF','Quarterfinals'],['SF','Semifinals'],['F','Final']];
-// Picks lock at the first knockout kickoff.
-const LOCK_ISO = MATCHES.reduce((min,m)=> m.iso < min ? m.iso : min, MATCHES[0].iso);
+// Picks lock Monday Jun 29 at 12:00 PM ET — before that day's first game.
+// (Sunday's South Africa–Canada game is a bye, so nobody has to pick it.)
+const LOCK_ISO = '2026-06-29T12:00:00-04:00';
+const LOCK_LABEL = 'Mon, Jun 29 · 12:00 PM ET';
 function picksLocked(){ return Date.now() >= new Date(LOCK_ISO).getTime(); }
-// Every knockout game a player must pick (3rd-place match excluded).
-const PICK_IDS = MATCHES.filter(m => m.round !== '3RD').map(m => m.id);
+// Games given as a "bye" — excluded from picking & scoring. The bye winner still
+// feeds the next round as a pickable "winner of that game" option.
+const BYE_IDS = new Set([73]);
+// Every knockout game a player must pick (3rd-place match + byes excluded).
+const PICK_IDS = MATCHES.filter(m => m.round !== '3RD' && !BYE_IDS.has(m.id)).map(m => m.id);
 
 // Registry of every known team by ISO (fills out as Round-of-32 teams are confirmed).
 const TEAM_BY_ISO = {};
 MATCHES.forEach(m => [m.home, m.away].forEach(s => { if (s.t === 'team') TEAM_BY_ISO[s.iso] = s; }));
+// "Bye winner" pseudo-team so the bye game's winner can be advanced even before it's played.
+BYE_IDS.forEach(id => {
+  const m = byId[id];
+  const nm = s => s.t === 'team' ? (s.short || s.name) : '?';
+  TEAM_BY_ISO['BYE' + id] = { t:'team', name:`${nm(m.home)}/${nm(m.away)} winner`, short:`${nm(m.home)}/${nm(m.away)} winner`, iso:'BYE' + id, byeRef:id };
+});
 
 let myPicks = {};
 try { myPicks = JSON.parse(localStorage.getItem('wc26picks') || '{}') || {}; } catch(e){ myPicks = {}; }
@@ -839,7 +853,10 @@ function saveMyPicks(){ try { localStorage.setItem('wc26picks', JSON.stringify(m
 // Resolve a game slot to the team the PLAYER has advanced into it (or null).
 function pickSlotTeam(slot){
   if (slot.t === 'team') return slot;
-  if (slot.t === 'win'){ const iso = myPicks[slot.ref]; return iso ? (TEAM_BY_ISO[iso] || null) : null; }
+  if (slot.t === 'win'){
+    if (BYE_IDS.has(slot.ref)) return TEAM_BY_ISO['BYE' + slot.ref]; // bye winner is always pickable
+    const iso = myPicks[slot.ref]; return iso ? (TEAM_BY_ISO[iso] || null) : null;
+  }
   return null; // tbd / not yet determined
 }
 function pickWinnerTeam(gameId){ const iso = myPicks[gameId]; return iso ? (TEAM_BY_ISO[iso] || null) : null; }
@@ -896,11 +913,12 @@ function renderPicks(){
     `<b>1</b> · R32, <b>2</b> · R16, <b>4</b> · QF, <b>8</b> · Semis, <b>16</b> · champion, ` +
     `plus <b>+${POOL.bonus.potm}</b> each for a correct Player of the Tournament &amp; Top Goalscorer. ` +
     `Highest total wins; the bonus picks also break ties. Entry is <b>$${POOL.entryFee}</b>; the pot pays ` +
-    `<b>60% / 30% / 10%</b> to 1st / 2nd / 3rd. Money is settled in person — the site just tracks picks &amp; scores.`;
+    `<b>60% / 30% / 10%</b> to 1st / 2nd / 3rd. The opening South Africa–Canada game is a <b>free bye</b> — you don't pick it. ` +
+    `Money is settled in person — the site just tracks picks &amp; scores.`;
   document.getElementById('poolMeta').innerHTML =
     `<span class="pill">Entry <b>$${POOL.entryFee}</b></span>` +
     `<span class="pill">Payout <b>60/30/10</b></span>` +
-    `<span class="pill">Locks <b>${fmtDate(LOCK_ISO)}, ${byId[73].etLabel}</b></span>`;
+    `<span class="pill">Locks <b>${LOCK_LABEL}</b></span>`;
   renderPot('potPicks');
 
   const form = document.getElementById('picksForm');
@@ -938,6 +956,12 @@ function renderPicks(){
   PICK_ROUNDS.forEach(([key,label]) => {
     html += `<div class="pkround"><h3>${label}</h3>`;
     MATCHES.filter(m => m.round === key).forEach(m => {
+      if (BYE_IDS.has(m.id)){
+        const a = resolveTeam(m.home), b = resolveTeam(m.away);
+        const nm = (t,slot) => t ? `${flagEmoji(t.iso)} ${t.short || t.name}` : slotPlaceholder(slot);
+        html += `<div class="pkmatch byerow"><div class="pkno">M${m.id}</div><div class="pkbye">🎟️ <b>Bye</b> — ${nm(a,m.home)} v ${nm(b,m.away)} <span>· not part of your picks</span></div></div>`;
+        return;
+      }
       const a = pickSlotTeam(m.home), b = pickSlotTeam(m.away);
       html += `<div class="pkmatch"><div class="pkno">M${m.id}</div>${pickOptHTML(m,m.home,a,locked)}<div class="pkvs">vs</div>${pickOptHTML(m,m.away,b,locked)}</div>`;
     });
@@ -988,15 +1012,22 @@ function loadEntries(){
     .catch(() => { ENTRIES = []; });
 }
 function actualWinnerIso(gameId){ const t = resultWinnerTeam(gameId); return t ? t.iso : null; }
+// A player's pick for a game -> concrete team ISO (a bye-winner pick resolves to whoever actually won the bye game).
+function pickedWinnerIso(picks, gameId){
+  const v = picks[gameId]; if (!v) return null;
+  if (/^BYE/.test(v)) return actualWinnerIso(+v.slice(3));
+  return v;
+}
 function scoreEntry(entry){
   const picks = (entry && entry.picks) || {};
   let pts = 0, correct = 0, decided = 0;
   MATCHES.forEach(m => {
-    if (m.round === '3RD') return;
+    if (m.round === '3RD' || BYE_IDS.has(m.id)) return; // byes aren't scored
     const aw = actualWinnerIso(m.id);
     if (!aw) return;
     decided++;
-    if (picks[m.id] && picks[m.id] === aw){ pts += POINTS[m.round]; correct++; }
+    const pk = pickedWinnerIso(picks, m.id);
+    if (pk && pk === aw){ pts += POINTS[m.round]; correct++; }
   });
   const bonus = bonusPoints(entry || {});
   return { pts: pts + bonus, bracketPts: pts, bonus, correct, decided };
