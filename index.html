@@ -389,7 +389,7 @@
     <form id="picksForm" autocomplete="off" onsubmit="return submitPicks(event)">
       <div class="pickfields">
         <label>Your name <input type="text" id="pkName" maxlength="40" placeholder="e.g. Octavio C." required></label>
-        <label>Email or Slack <span class="opt">(so we can pay you out)</span> <input type="text" id="pkEmail" maxlength="60" placeholder="optional"></label>
+        <label>Email or Slack <span class="opt">(required — one entry per person)</span> <input type="text" id="pkEmail" maxlength="60" placeholder="you@company.com" required></label>
       </div>
       <div class="champpick" id="champPick"></div>
       <div id="picksRounds"></div>
@@ -768,7 +768,7 @@ function buildStepperAndBanner(){
 // ---------- view switching ----------
 /* =====================  OFFICE BRACKET POOL  ===================== */
 // Adjust the entry fee here if you like; payout split is 60/30/10 to top 3.
-const POOL = { entryFee: 5, split: [0.6, 0.3, 0.1] };
+const POOL = { entryFee: 20, split: [0.6, 0.3, 0.1] };
 // Points awarded for each correctly-picked game winner, by round.
 const POINTS = { R32:1, R16:2, QF:4, SF:8, F:16 };
 const PICK_ROUNDS = [['R32','Round of 32'],['R16','Round of 16'],['QF','Quarterfinals'],['SF','Semifinals'],['F','Final']];
@@ -830,6 +830,12 @@ function pickOptHTML(m, slot, team, locked){
   const click = locked ? '' : ` onclick="setPick(${m.id},'${team.iso}')"`;
   return `<button type="button" class="pkopt${sel}"${click}><span class="flag">${flagEmoji(team.iso)}</span><span>${team.short || team.name}</span></button>`;
 }
+// One entry per person: remember on this device that they've submitted.
+let editingPicks = false;
+function alreadySubmitted(){ try { return JSON.parse(localStorage.getItem('wc26submitted') || 'null'); } catch(e){ return null; } }
+function markSubmitted(name){ try { localStorage.setItem('wc26submitted', JSON.stringify({ name, ts: Date.now() })); } catch(e){} }
+function editPicks(){ editingPicks = true; renderPicks(); }
+
 function renderPicks(){
   const locked = picksLocked();
   const ready = bracketReady();
@@ -845,11 +851,25 @@ function renderPicks(){
     `<span class="pill">Payout <b>60/30/10</b></span>` +
     `<span class="pill">Locks <b>${fmtDate(LOCK_ISO)}, ${byId[73].etLabel}</b></span>`;
 
+  const form = document.getElementById('picksForm');
+  const thanks = document.getElementById('picksThanks');
   const lockEl = document.getElementById('picksLockMsg');
+  const nrEl = document.getElementById('picksNotReady');
+
+  // One entry per person — show an "already entered" panel instead of the form.
+  const sub = alreadySubmitted();
+  if (sub && !editingPicks){
+    form.hidden = true; lockEl.hidden = true; nrEl.hidden = true; thanks.hidden = false;
+    thanks.innerHTML = `<h3>✅ You're entered, ${sub.name}</h3>
+      <p>You can only sign up once. ${locked ? 'Picks are now locked.' : 'You can still adjust your picks until they lock.'} Don’t forget to send your <b>$${POOL.entryFee}</b> entry to the organizer.</p>
+      <p>Track the standings on the <b>Leaderboard</b> tab.</p>` +
+      (locked ? '' : `<p style="margin-top:10px"><button type="button" class="pkreset" onclick="editPicks()">Edit my picks</button></p>`);
+    return;
+  }
+  thanks.hidden = true; form.hidden = false;
+
   lockEl.hidden = !locked;
   if (locked) lockEl.textContent = '🔒 Picks are closed — the knockout stage has started. Head to the Leaderboard to follow the standings.';
-
-  const nrEl = document.getElementById('picksNotReady');
   nrEl.hidden = ready || locked;
   if (!ready && !locked) nrEl.innerHTML = '⏳ The Round of 32 isn’t fully confirmed yet (group stage ends Jun 27). You can start picking the matchups already set, then come back to finish the bracket once it’s complete.';
 
@@ -881,27 +901,20 @@ function submitPicks(e){
   if (picksLocked()){ alert('Picks are closed — the tournament has started.'); return false; }
   const name = document.getElementById('pkName').value.trim();
   if (!name){ alert('Please enter your name.'); return false; }
+  const email = document.getElementById('pkEmail').value.trim();
+  if (!email){ alert('Please add your email or Slack handle — it ties the entry to you (one entry per person).'); return false; }
   const done = PICK_IDS.filter(id => myPicks[id]).length;
   if (done < PICK_IDS.length){ alert(`Please pick all ${PICK_IDS.length} games first (${done} done).`); return false; }
   const body = new URLSearchParams();
   body.append('form-name', 'bracket-picks');
   body.append('name', name);
-  body.append('email', document.getElementById('pkEmail').value.trim());
+  body.append('email', email);
   body.append('picks', JSON.stringify(myPicks));
   const btn = document.getElementById('pkSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
   fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
-    .then(r => { if (!r.ok) throw new Error(r.status); showThanks(name); })
+    .then(r => { if (!r.ok) throw new Error(r.status); markSubmitted(name); editingPicks = false; renderPicks(); window.scrollTo({top:0,behavior:'smooth'}); })
     .catch(() => { alert('Submit failed — check your connection and try again.'); btn.disabled = false; btn.textContent = 'Submit my bracket'; });
   return false;
-}
-function showThanks(name){
-  document.getElementById('picksForm').hidden = true;
-  const t = document.getElementById('picksThanks');
-  t.hidden = false;
-  t.innerHTML = `<h3>✅ You're in, ${name}!</h3>
-    <p>Your bracket is locked in. Don't forget to send your <b>$${POOL.entryFee}</b> entry to the organizer.</p>
-    <p>Follow the standings on the <b>Leaderboard</b> tab once the games begin.</p>
-    <p style="margin-top:10px"><button type="button" class="pkreset" onclick="document.getElementById('picksThanks').hidden=true;document.getElementById('picksForm').hidden=false;">Edit my picks</button></p>`;
 }
 
 /* ---------- leaderboard ---------- */
