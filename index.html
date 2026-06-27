@@ -10,22 +10,32 @@
 <meta property="og:type" content="website">
 <style>
   :root{
-    --bg:#0a1626; --bg2:#0d1b2e; --card:#15243b; --line:#27395a; --ink:#eaf1fb;
-    --muted:#9db0cd; --accent:#2bd49a; --accent2:#3a86ff; --gold:#ffd34e; --bad:#ff6b6b;
+    --bg:#091321; --bg2:#0e1d33; --card:#15263f; --card2:#1b2f4d; --line:#2a3e63; --ink:#eef3fc;
+    --muted:#9fb3d2; --accent:#27d6a0; --accent2:#4b8dff; --gold:#ffd24a; --bad:#ff6f6f;
+    --shadow:0 8px 26px rgba(3,8,18,.38); --shadow-sm:0 3px 12px rgba(3,8,18,.28);
+    --grad-card:linear-gradient(180deg,var(--card2),var(--card));
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-       background:linear-gradient(180deg,#0a1626,#0c1a2c 40%,#0a1626);color:var(--ink);
-       -webkit-font-smoothing:antialiased;min-height:100vh;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;
+       background:
+         radial-gradient(1100px 560px at 50% -8%, rgba(75,141,255,.13), transparent 60%),
+         radial-gradient(820px 480px at 96% 3%, rgba(39,214,160,.09), transparent 55%),
+         radial-gradient(760px 520px at 3% 12%, rgba(255,210,74,.055), transparent 55%),
+         linear-gradient(180deg,#091321,#0b1a30 45%,#091321);
+       background-attachment:fixed;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   .wrap{max-width:1480px;margin:0 auto;padding:16px 14px 70px;}
-  header{text-align:center;padding:10px 0 4px;}
-  .trophy{font-size:34px;}
-  h1{font-size:22px;margin:4px 0 2px;letter-spacing:.2px;}
-  .sub{color:var(--muted);font-size:12.5px;}
-  .meta{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:9px;}
-  .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;
-        padding:5px 11px;font-size:12px;color:var(--ink);}
+  header{text-align:center;padding:14px 0 4px;}
+  .trophy{font-size:38px;filter:drop-shadow(0 5px 18px rgba(255,210,74,.5));}
+  h1{font-size:25px;margin:6px 0 3px;letter-spacing:-.3px;font-weight:800;}
+  .sub{color:var(--muted);font-size:12.5px;letter-spacing:.2px;}
+  .hostflags{font-size:16px;letter-spacing:4px;margin-top:6px;}
+  .meta{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:11px;}
+  .chip{background:var(--grad-card);border:1px solid var(--line);border-radius:999px;
+        padding:6px 12px;font-size:12px;color:var(--ink);box-shadow:var(--shadow-sm);}
   .chip b{color:var(--gold);}
 
   /* stepper */
@@ -41,9 +51,12 @@
   .step.past .lbl{color:var(--accent);}
 
   /* banner */
-  .banner{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;
-          margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
-  .banner.live{border-color:var(--bad);box-shadow:0 0 0 1px rgba(255,107,107,.25);}
+  .banner{background:var(--grad-card);border:1px solid var(--line);border-radius:16px;padding:17px;
+          margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+          box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .banner:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--gold);opacity:.85;}
+  .banner.live:before{background:var(--bad);}
+  .banner.live{border-color:var(--bad);box-shadow:var(--shadow),0 0 0 1px rgba(255,111,111,.3);}
   .banner .tag{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);}
   .banner.live .tag{color:var(--bad);}
   .banner .tag .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bad);
@@ -55,10 +68,13 @@
         padding:7px 13px;white-space:nowrap;text-decoration:none;}
 
   /* view toggle */
-  .toggle{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px;}
-  .toggle button{padding:9px 16px;border-radius:11px;background:var(--card);border:1px solid var(--line);
-        color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer;}
-  .toggle button.active{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .toggle{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0 4px;}
+  .toggle button{padding:10px 17px;border-radius:12px;background:var(--grad-card);border:1px solid var(--line);
+        color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:var(--shadow-sm);
+        transition:transform .12s ease, box-shadow .15s ease, color .15s ease, background .2s ease, border-color .15s ease;}
+  .toggle button:hover{color:var(--ink);border-color:var(--accent2);transform:translateY(-1px);}
+  .toggle button.active{background:linear-gradient(180deg,#5d99ff,#3f82f7);border-color:#5d99ff;color:#fff;
+        box-shadow:0 7px 18px rgba(75,141,255,.38);}
   .hint{text-align:center;color:var(--muted);font-size:12px;margin:8px 0 4px;}
   .hint b{color:var(--gold);}
 
@@ -88,9 +104,9 @@
   .bcol{display:flex;flex-direction:column;justify-content:space-around;align-items:stretch;z-index:1;}
   .bcenter{display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:14px;z-index:1;}
 
-  .bn{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 10px;
-        cursor:pointer;transition:border-color .15s, box-shadow .15s, opacity .15s;}
-  .bn:hover{border-color:var(--accent2);}
+  .bn{background:var(--grad-card);border:1px solid var(--line);border-radius:11px;padding:9px 10px;
+        cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s, box-shadow .15s, opacity .15s, transform .12s;}
+  .bn:hover{border-color:var(--accent2);transform:translateY(-1px);box-shadow:var(--shadow);}
   .bn-meta{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
   .bn-slot{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:2px 0;line-height:1.25;}
   .bn-slot .flag{font-size:14px;width:18px;text-align:center;flex:0 0 auto;}
@@ -140,7 +156,9 @@
   .round h2{font-size:16px;margin:0 0 3px;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
   .round h2 .range{font-size:12px;color:var(--muted);font-weight:400;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px;margin-top:10px;}
-  .match{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;}
+  .match{background:var(--grad-card);border:1px solid var(--line);border-radius:14px;padding:14px;
+        box-shadow:var(--shadow-sm);transition:transform .12s, box-shadow .15s, border-color .15s;}
+  .match:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--accent2);}
   .match.done{opacity:.55;}
   .match.played{border-color:rgba(43,212,154,.4);}
   .match.flash{outline:2px solid var(--gold);}
@@ -168,7 +186,8 @@
 
   /* ---------- pool: picks + leaderboard ---------- */
   #picksView, #leaderboardView{display:none;}
-  .poolcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 17px;margin:6px 0 14px;}
+  #bracketView, #scheduleView, #picksView, #leaderboardView{animation:fadeUp .28s ease;}
+  .poolcard{background:var(--grad-card);border:1px solid var(--line);border-radius:16px;padding:17px 18px;margin:6px 0 14px;box-shadow:var(--shadow);}
   .poolcard h2{margin:0 0 8px;font-size:17px;}
   .poolcard p{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.6;}
   .poolcard p b{color:var(--ink);}
@@ -208,8 +227,9 @@
         background:linear-gradient(180deg,transparent,var(--bg) 40%);padding:12px 0 6px;}
   .pkprogress{font-size:13px;color:var(--muted);font-weight:700;}
   .pkprogress b{color:var(--accent);}
-  .pkbtn{background:var(--accent);border:none;border-radius:11px;padding:13px 22px;color:#062018;font-weight:800;font-size:14.5px;cursor:pointer;}
-  .pkbtn:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;}
+  .pkbtn{background:linear-gradient(180deg,#34e2ad,#20c794);border:none;border-radius:11px;padding:13px 22px;color:#04201a;font-weight:800;font-size:14.5px;cursor:pointer;box-shadow:0 7px 18px rgba(39,214,160,.32);transition:transform .12s, box-shadow .15s;}
+  .pkbtn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 22px rgba(39,214,160,.4);}
+  .pkbtn:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;box-shadow:none;}
   .pkreset{background:none;border:1px solid var(--line);border-radius:11px;padding:11px 15px;color:var(--muted);font-size:12.5px;cursor:pointer;}
   .thanks{background:rgba(43,212,154,.1);border:1px solid var(--accent);border-radius:14px;padding:18px;text-align:center;}
   .thanks h3{margin:0 0 6px;font-size:18px;}
@@ -300,7 +320,8 @@
   <header>
     <div class="trophy">🏆</div>
     <h1>World Cup 2026 — Bracket Tracker</h1>
-    <div class="sub">Round of 32 → Final · USA · Canada · Mexico</div>
+    <div class="sub">Knockout bracket · Round of 32 → Final</div>
+    <div class="hostflags">🇺🇸 🇨🇦 🇲🇽</div>
     <div class="meta">
       <div class="chip">Knockout stage: <b>Jun 28 – Jul 19, 2026</b></div>
       <div class="chip">Final: <b>MetLife Stadium, NJ</b></div>
@@ -408,11 +429,11 @@ const MATCHES = [
   // Round of 32
   {id:73, round:'R32', iso:'2026-06-28T15:00:00-04:00', etLabel:'3:00 PM ET', localLabel:'12:00 PM PT', venue:'SoFi Stadium', city:'Inglewood, CA', home:team('South Africa','ZA','South Africa'), away:team('Canada','CA')},
   {id:76, round:'R32', iso:'2026-06-29T13:00:00-04:00', etLabel:'1:00 PM ET', localLabel:'12:00 PM CT', venue:'NRG Stadium', city:'Houston, TX', home:team('Brazil','BR'), away:team('Japan','JP')},
-  {id:74, round:'R32', iso:'2026-06-29T16:30:00-04:00', etLabel:'4:30 PM ET', venue:'Gillette Stadium', city:'Foxborough, MA', home:team('Germany','DE'), away:tbd('3rd · Group C/D/F')},
+  {id:74, round:'R32', iso:'2026-06-29T16:30:00-04:00', etLabel:'4:30 PM ET', venue:'Gillette Stadium', city:'Foxborough, MA', home:team('Germany','DE'), away:team('Paraguay','PY')},
   {id:75, round:'R32', iso:'2026-06-29T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'7:00 PM CT', venue:'Estadio BBVA', city:'Guadalupe, MX', home:team('Netherlands','NL'), away:team('Morocco','MA')},
-  {id:78, round:'R32', iso:'2026-06-30T13:00:00-04:00', etLabel:'1:00 PM ET', localLabel:'12:00 PM CT', venue:'AT&T Stadium', city:'Arlington, TX', home:team('Ivory Coast','CI'), away:tbd('Runner-up · Group I')},
+  {id:78, round:'R32', iso:'2026-06-30T13:00:00-04:00', etLabel:'1:00 PM ET', localLabel:'12:00 PM CT', venue:'AT&T Stadium', city:'Arlington, TX', home:team('Ivory Coast','CI'), away:team('Norway','NO')},
   {id:77, round:'R32', iso:'2026-06-30T17:00:00-04:00', etLabel:'5:00 PM ET', venue:'MetLife Stadium', city:'E. Rutherford, NJ', home:tbd('Winner · Group I'), away:tbd('3rd · Group D/F/G')},
-  {id:79, round:'R32', iso:'2026-06-30T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'7:00 PM CT', venue:'Estadio Azteca', city:'Mexico City, MX', home:team('Mexico','MX'), away:tbd('3rd · Group C/E/H')},
+  {id:79, round:'R32', iso:'2026-06-30T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'7:00 PM CT', venue:'Estadio Azteca', city:'Mexico City, MX', home:team('Mexico','MX'), away:team('Scotland','gb-sct')},
   {id:80, round:'R32', iso:'2026-07-01T12:00:00-04:00', etLabel:'12:00 PM ET', venue:'Mercedes-Benz Stadium', city:'Atlanta, GA', home:tbd('Winner · Group L'), away:tbd('3rd · Group E/I/J/K')},
   {id:82, round:'R32', iso:'2026-07-01T16:00:00-04:00', etLabel:'4:00 PM ET', localLabel:'1:00 PM PT', venue:'Lumen Field', city:'Seattle, WA', home:tbd('Winner · Group G'), away:tbd('3rd · Group A/H/I/J')},
   {id:81, round:'R32', iso:'2026-07-01T20:00:00-04:00', etLabel:'8:00 PM ET', localLabel:'5:00 PM PT', venue:"Levi's Stadium", city:'Santa Clara, CA', home:team('United States','US','United States'), away:team('Bosnia and Herzegovina','BA','Bosnia & Herz.')},
@@ -532,7 +553,8 @@ function half(id){ return leftIds.has(id) ? 'L' : 'R'; }
 let selected = null;
 
 // ---------- helpers ----------
-function flagEmoji(iso){ return iso.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0))); }
+const SUBFLAG = { 'gb-eng':'🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'gb-sct':'🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'gb-wls':'🏴󠁧󠁢󠁷󠁬󠁳󠁿' };
+function flagEmoji(iso){ const k = iso.toLowerCase(); if (SUBFLAG[k]) return SUBFLAG[k]; return iso.slice(0,2).toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0))); }
 function roundLabel(key){ const r = ROUNDS.find(r => r.key === key); return r ? r.label : key; }
 function fmtDate(iso){ return new Date(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'America/New_York'}); }
 function statusOf(m, now){
@@ -624,7 +646,11 @@ function drawConnectors(){
     if (side === 'L'){ sx = cr.right - br.left; ex = pr.left - br.left; }
     else { sx = cr.left - br.left; ex = pr.right - br.left; }
     const mx = (sx + ex) / 2;
-    paths += `<path id="e${cId}_${pId}" d="M ${sx} ${sy} H ${mx} V ${ey} H ${ex}" fill="none" stroke="var(--line)" stroke-width="2"></path>`;
+    // rounded elbow for a softer look
+    const dx = ex > sx ? 1 : -1, dy = ey > sy ? 1 : -1;
+    const r = Math.min(8, Math.abs(mx - sx), Math.abs(ex - mx), Math.abs(ey - sy) / 2);
+    const d = `M ${sx} ${sy} L ${mx - dx*r} ${sy} Q ${mx} ${sy} ${mx} ${sy + dy*r} L ${mx} ${ey - dy*r} Q ${mx} ${ey} ${mx + dx*r} ${ey} L ${ex} ${ey}`;
+    paths += `<path id="e${cId}_${pId}" d="${d}" fill="none" stroke="var(--line)" stroke-width="2" stroke-linecap="round"></path>`;
   }
   svg.innerHTML = paths;
   if (selected) applyHighlight(selected); // re-apply after redraw
@@ -775,10 +801,9 @@ function slotPlaceholder(slot){
 // True once all Round-of-32 teams are confirmed (group stage finished).
 function bracketReady(){ return MATCHES.filter(m => m.round === 'R32').every(m => m.home.t === 'team' && m.away.t === 'team'); }
 
-function setPick(gameId, iso){
-  if (picksLocked()) return;
-  myPicks[gameId] = iso;
-  // Drop any later pick whose team is no longer one of that game's participants.
+// Drop any pick whose team is no longer one of that game's current participants
+// (cascades through later rounds; also cleans stale saved picks after data changes).
+function prunePicks(){
   let changed = true;
   while (changed){
     changed = false;
@@ -789,6 +814,11 @@ function setPick(gameId, iso){
       if (!ok){ delete myPicks[m.id]; changed = true; }
     });
   }
+}
+function setPick(gameId, iso){
+  if (picksLocked()) return;
+  myPicks[gameId] = iso;
+  prunePicks();
   saveMyPicks();
   renderPicks();
 }
@@ -803,6 +833,7 @@ function pickOptHTML(m, slot, team, locked){
 function renderPicks(){
   const locked = picksLocked();
   const ready = bracketReady();
+  prunePicks(); saveMyPicks(); // keep saved picks consistent with the current bracket
   // rules card
   document.getElementById('poolRules').innerHTML =
     `Pick the winner of <b>every knockout game</b> — Round of 32 through the Final. Points: ` +
