@@ -1068,27 +1068,42 @@ function submitPicks(e){
   const done = PICK_IDS.filter(id => myPicks[id]).length;
   if (done < PICK_IDS.length){ alert(`Please pick all ${PICK_IDS.length} games first (${done} done).`); return false; }
   myBonus = { potm, scorer }; saveBonus();
-  const body = new URLSearchParams();
-  body.append('form-name', 'bracket-picks');
-  body.append('name', name);
-  body.append('email', email);
-  body.append('picks', JSON.stringify(myPicks));
-  body.append('potm', potm);
-  body.append('scorer', scorer);
   const btn = document.getElementById('pkSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
-  fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
-    .then(r => { if (!r.ok) throw new Error(r.status); markSubmitted(name); editingPicks = false; renderPicks(); window.scrollTo({top:0,behavior:'smooth'}); })
-    .catch(() => { alert('Submit failed — check your connection and try again.'); btn.disabled = false; btn.textContent = 'Submit my bracket'; });
+
+  const onDone = () => { markSubmitted(name); editingPicks = false; renderPicks(); window.scrollTo({ top:0, behavior:'smooth' }); };
+  const onFail = () => { alert('Submit failed — check your connection and try again.'); btn.disabled = false; btn.textContent = 'Submit my bracket'; };
+
+  // Primary: serverless function -> live pot & leaderboard. Fallback: Netlify Forms.
+  fetch('/.netlify/functions/submit', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, email, picks: myPicks, potm, scorer })
+  })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => { if (d && d.ok) onDone(); else return Promise.reject(); })
+    .catch(() => {
+      const body = new URLSearchParams();
+      body.append('form-name', 'bracket-picks');
+      body.append('name', name); body.append('email', email);
+      body.append('picks', JSON.stringify(myPicks));
+      body.append('potm', potm); body.append('scorer', scorer);
+      fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
+        .then(r => { if (!r.ok) throw new Error(r.status); onDone(); })
+        .catch(onFail);
+    });
   return false;
 }
 
 /* ---------- leaderboard ---------- */
 let ENTRIES = [];
 function loadEntries(){
-  return fetch('./entries.json', { cache:'no-store' })
-    .then(r => r.ok ? r.json() : [])
+  // Primary: live entries from the serverless function. Fallback: baked entries.json.
+  return fetch('/.netlify/functions/entries', { cache:'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject())
     .then(d => { ENTRIES = Array.isArray(d) ? d : []; })
-    .catch(() => { ENTRIES = []; });
+    .catch(() => fetch('./entries.json', { cache:'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { ENTRIES = Array.isArray(d) ? d : []; })
+      .catch(() => { ENTRIES = []; }));
 }
 function actualWinnerIso(gameId){ const t = resultWinnerTeam(gameId); return t ? t.iso : null; }
 // A player's pick for a game -> concrete team ISO (a bye-winner pick resolves to whoever actually won the bye game).
