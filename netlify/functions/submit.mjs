@@ -1,7 +1,8 @@
 import { getStore } from "@netlify/blobs";
 
-// Stores one bracket entry, keyed by email so a person can only have one entry
-// (re-submitting updates it). Powers the live pot + leaderboard.
+// Upserts a bracket entry into a single "entries" document (one entry per email).
+// Using one document keeps reads strongly consistent, so the pot/leaderboard
+// reflect a new submission immediately.
 export default async (req) => {
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
 
@@ -21,11 +22,15 @@ export default async (req) => {
     ts: Date.now(),
   };
 
-  const key = email.toLowerCase().replace(/[^a-z0-9@._+-]/g, "") || `anon-${Date.now()}`;
-  const store = getStore("entries");
-  await store.setJSON(key, entry);
+  const norm = (s) => (s || "").toString().toLowerCase().replace(/\s+/g, "");
+  const store = getStore("pool");
+  let list = await store.get("entries", { type: "json" });
+  if (!Array.isArray(list)) list = [];
+  list = list.filter((e) => norm(e.email) !== norm(email)); // one entry per email (resubmit updates)
+  list.push(entry);
+  await store.setJSON("entries", list);
 
-  return json({ ok: true });
+  return json({ ok: true, count: list.length });
 };
 
 function json(obj, status = 200) {
