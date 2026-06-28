@@ -7,6 +7,7 @@ export default async () => {
   let list;
   try { list = await store.get("entries", { type: "json" }); } catch { list = []; }
   if (!Array.isArray(list)) list = [];
+  list = list.filter((e) => e && e.name && !/^__/.test(e.name)); // hide internal test entries
   return new Response(JSON.stringify(list), {
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
