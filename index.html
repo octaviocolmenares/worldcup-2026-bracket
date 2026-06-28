@@ -1070,7 +1070,7 @@ function submitPicks(e){
   myBonus = { potm, scorer }; saveBonus();
   const btn = document.getElementById('pkSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
 
-  const onDone = () => { markSubmitted(name); editingPicks = false; renderPicks(); window.scrollTo({ top:0, behavior:'smooth' }); };
+  const onDone = () => { markSubmitted(name); editingPicks = false; loadEntries().then(renderPicks); window.scrollTo({ top:0, behavior:'smooth' }); };
   const onFail = () => { alert('Submit failed — check your connection and try again.'); btn.disabled = false; btn.textContent = 'Submit my bracket'; };
 
   // Primary: serverless function -> live pot & leaderboard. Fallback: Netlify Forms.
