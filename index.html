@@ -443,7 +443,7 @@
       <div class="modecard">
         <div class="bonushd">How are you joining? <span>pick one — you can compete for the pot, or just for fun</span></div>
         <div class="modeopts">
-          <label class="modeopt"><input type="radio" name="pkmode" value="money" checked><span>💰 <b>Money bracket</b> — $20 entry (you're in the cash pot <i>and</i> the overall)</span></label>
+          <label class="modeopt"><input type="radio" name="pkmode" value="money" checked><span>💰 <b>Money bracket</b> — $10 entry (you're in the cash pot <i>and</i> the overall)</span></label>
           <label class="modeopt"><input type="radio" name="pkmode" value="fun"><span>😄 <b>Just for fun</b> — free (you compete in the overall only)</span></label>
         </div>
       </div>
@@ -894,7 +894,7 @@ function buildStepperAndBanner(){
 /* =====================  OFFICE BRACKET POOL  ===================== */
 // Adjust the entry fee here if you like; payout split is 60/30/10 to top 3.
 const POOL = {
-  entryFee: 20,
+  entryFee: 10,
   split: [0.6, 0.3, 0.1],
   bonus: { potm: 10, scorer: 10 },  // points for a correct bonus pick
   // Filled in at the end of the tournament so bonus picks can be scored:
