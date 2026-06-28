@@ -19,6 +19,7 @@ export default async (req) => {
     picks: body?.picks && typeof body.picks === "object" ? body.picks : {},
     potm: (body?.potm || "").toString().trim().slice(0, 50),
     scorer: (body?.scorer || "").toString().trim().slice(0, 50),
+    mode: body?.mode === "fun" ? "fun" : "money",
     ts: Date.now(),
   };
 

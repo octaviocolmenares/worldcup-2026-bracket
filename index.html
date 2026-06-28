@@ -208,6 +208,12 @@
   .bonuscard{background:rgba(75,141,255,.07);border:1px solid var(--line);border-radius:13px;padding:13px 14px;margin-bottom:14px;}
   .bonushd{font-size:13px;font-weight:800;margin-bottom:10px;}
   .bonushd span{font-weight:500;color:var(--muted);font-size:11.5px;}
+  .modecard{background:rgba(255,210,74,.07);border:1px solid var(--line);border-radius:13px;padding:13px 14px;margin-bottom:14px;}
+  .modeopts{display:flex;flex-direction:column;gap:8px;margin-top:9px;}
+  .modeopt{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 13px;cursor:pointer;font-size:13.5px;}
+  .modeopt input{accent-color:var(--accent);width:17px;height:17px;flex:0 0 auto;}
+  .modeopt:has(input:checked){border-color:var(--gold);box-shadow:0 0 0 1px var(--gold);background:rgba(255,210,74,.1);}
+  .modeopt i{font-style:normal;color:var(--muted);}
   .poolcard{background:var(--grad-card);border:1px solid var(--line);border-radius:16px;padding:17px 18px;margin:6px 0 14px;box-shadow:var(--shadow);}
   .poolcard h2{margin:0 0 8px;font-size:17px;}
   .poolcard p{margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.6;}
@@ -259,6 +265,10 @@
   .thanks h3{margin:0 0 6px;font-size:18px;}
   .thanks p{color:var(--muted);font-size:13px;margin:4px 0;}
 
+  .lbtoggle{display:flex;gap:7px;margin:10px 0 2px;flex-wrap:wrap;}
+  .lbtoggle button{padding:8px 13px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:12.5px;cursor:pointer;}
+  .lbtoggle button.active{background:linear-gradient(180deg,#5d99ff,#3f82f7);border-color:#5d99ff;color:#fff;}
+  .mtag{font-size:11px;}
   .lbtable{width:100%;border-collapse:collapse;font-size:13.5px;}
   .lbtable th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line);}
   .lbtable td{padding:11px 10px;border-bottom:1px solid var(--line);}
@@ -410,6 +420,7 @@
     <input type="hidden" name="picks" />
     <input type="text" name="potm" />
     <input type="text" name="scorer" />
+    <input type="text" name="mode" />
     <input type="text" name="bot-field" />
   </form>
 
@@ -428,6 +439,13 @@
       <div class="pickfields">
         <label>Your name <input type="text" id="pkName" maxlength="40" placeholder="e.g. Octavio C." required></label>
         <label>Email or Slack <span class="opt">(required — one entry per person)</span> <input type="text" id="pkEmail" maxlength="60" placeholder="you@company.com" required></label>
+      </div>
+      <div class="modecard">
+        <div class="bonushd">How are you joining? <span>pick one — you can compete for the pot, or just for fun</span></div>
+        <div class="modeopts">
+          <label class="modeopt"><input type="radio" name="pkmode" value="money" checked><span>💰 <b>Money bracket</b> — $20 entry (you're in the cash pot <i>and</i> the overall)</span></label>
+          <label class="modeopt"><input type="radio" name="pkmode" value="fun"><span>😄 <b>Just for fun</b> — free (you compete in the overall only)</span></label>
+        </div>
       </div>
       <div class="bonuscard">
         <div class="bonushd">⭐ Bonus picks <span>worth points + used to break ties</span></div>
@@ -553,6 +571,7 @@ const byId = Object.fromEntries(MATCHES.map(m => [m.id, m]));
      81: { hs: 1, as: 1, win: 'home', pens: '4-2' },
    ================================================================= */
 const RESULTS = {
+  73: { hs: 0, as: 1, win: 'away' }, // R32: Canada 1–0 South Africa (Eustáquio 90+2') — Canada advance
 };
 
 // Resolve a slot to a concrete team object once its result is known, else null.
@@ -892,13 +911,19 @@ function bonusPoints(entry){
 let myBonus = {};
 try { myBonus = JSON.parse(localStorage.getItem('wc26bonus') || '{}') || {}; } catch(e){ myBonus = {}; }
 function saveBonus(){ try { localStorage.setItem('wc26bonus', JSON.stringify(myBonus)); } catch(e){} }
+let myMode = localStorage.getItem('wc26mode') || 'money';
+function saveMode(m){ myMode = m; try { localStorage.setItem('wc26mode', m); } catch(e){} }
+// A missing mode counts as a money entry (the original default).
+const isMoney = e => (e && e.mode) !== 'fun';
+function moneyEntries(){ return ENTRIES.filter(isMoney); }
 
-// Prominent pot tracker (driven by the compiled entries).
+// Prominent pot tracker — driven by the MONEY entries only.
 function renderPot(elId){
   const el = document.getElementById(elId); if (!el) return;
-  const n = ENTRIES.length, pot = n * POOL.entryFee;
+  const n = moneyEntries().length, fun = ENTRIES.length - n, pot = n * POOL.entryFee;
   const pay = POOL.split.map(s => Math.round(pot * s));
-  el.innerHTML = `<div class="potmain"><span class="potamt">$${pot}</span><span class="potlbl">in the pot · ${n} ${n===1?'entry':'entries'} × $${POOL.entryFee}</span></div>
+  const funNote = fun ? ` · +${fun} for fun` : '';
+  el.innerHTML = `<div class="potmain"><span class="potamt">$${pot}</span><span class="potlbl">in the pot · ${n} paid ${n===1?'entry':'entries'}${funNote}</span></div>
     <div class="potsplit"><span class="ps">🥇 <b>$${pay[0]}</b></span><span class="ps">🥈 <b>$${pay[1]}</b></span><span class="ps">🥉 <b>$${pay[2]}</b></span></div>`;
 }
 // Points awarded for each correctly-picked game winner, by round.
@@ -933,7 +958,7 @@ function saveMyPicks(){ try { localStorage.setItem('wc26picks', JSON.stringify(m
 function pickSlotTeam(slot){
   if (slot.t === 'team') return slot;
   if (slot.t === 'win'){
-    if (BYE_IDS.has(slot.ref)) return TEAM_BY_ISO['BYE' + slot.ref]; // bye winner is always pickable
+    if (BYE_IDS.has(slot.ref)) return resultWinnerTeam(slot.ref) || TEAM_BY_ISO['BYE' + slot.ref]; // actual winner once played, else the abstract bye token
     const iso = myPicks[slot.ref]; return iso ? (TEAM_BY_ISO[iso] || null) : null;
   }
   return null; // tbd / not yet determined
@@ -991,8 +1016,8 @@ function renderPicks(){
     `Pick the winner of <b>every knockout game</b> — Round of 32 through the Final. Points: ` +
     `<b>1</b> · R32, <b>2</b> · R16, <b>4</b> · QF, <b>8</b> · Semis, <b>16</b> · champion, ` +
     `plus <b>+${POOL.bonus.potm}</b> each for a correct Player of the Tournament &amp; Top Goalscorer. ` +
-    `Highest total wins; the bonus picks also break ties. Entry is <b>$${POOL.entryFee}</b>; the pot pays ` +
-    `<b>60% / 30% / 10%</b> to 1st / 2nd / 3rd. The opening South Africa–Canada game is a <b>free bye</b> — you don't pick it. ` +
+    `Highest total wins; the bonus picks break ties. The opening Canada–South Africa game was a <b>free bye</b> — you don't pick it.<br><br>` +
+    `<b>Two ways to play, two prize sets:</b> 💰 the <b>Money bracket</b> ($${POOL.entryFee}) pays the pot <b>60/30/10</b> to its top 3 · 🌍 the <b>Overall</b> ranks <b>everyone</b> (money + fun) for a separate prize. ` +
     `Money is settled in person — the site just tracks picks &amp; scores.`;
   document.getElementById('poolMeta').innerHTML =
     `<span class="pill">Entry <b>$${POOL.entryFee}</b></span>` +
@@ -1020,6 +1045,8 @@ function renderPicks(){
   const peEl = document.getElementById('pkPotm'), seEl = document.getElementById('pkScorer');
   if (peEl && !peEl.value) peEl.value = myBonus.potm || '';
   if (seEl && !seEl.value) seEl.value = myBonus.scorer || '';
+  const modeRadio = document.querySelector(`input[name="pkmode"][value="${myMode}"]`);
+  if (modeRadio) modeRadio.checked = true;
 
   lockEl.hidden = !locked;
   if (locked) lockEl.textContent = '🔒 Picks are closed — the knockout stage has started. Head to the Leaderboard to follow the standings.';
@@ -1038,7 +1065,9 @@ function renderPicks(){
       if (BYE_IDS.has(m.id)){
         const a = resolveTeam(m.home), b = resolveTeam(m.away);
         const nm = (t,slot) => t ? `${flagEmoji(t.iso)} ${t.short || t.name}` : slotPlaceholder(slot);
-        html += `<div class="pkmatch byerow"><div class="pkno">M${m.id}</div><div class="pkbye">🎟️ <b>Bye</b> — ${nm(a,m.home)} v ${nm(b,m.away)} <span>· not part of your picks</span></div></div>`;
+        const r = RESULTS[m.id];
+        const note = r ? `✅ <b>${nm(resultWinnerTeam(m.id),m.home)} won ${r.win==='home'?r.hs:r.as}–${r.win==='home'?r.as:r.hs}</b> · advances automatically` : 'not part of your picks';
+        html += `<div class="pkmatch byerow"><div class="pkno">M${m.id}</div><div class="pkbye">🎟️ <b>Bye</b> — ${nm(a,m.home)} v ${nm(b,m.away)} <span>· ${note}</span></div></div>`;
         return;
       }
       const a = pickSlotTeam(m.home), b = pickSlotTeam(m.away);
@@ -1067,7 +1096,8 @@ function submitPicks(e){
   if (!potm || !scorer){ alert('Please fill in both bonus picks: Player of the Tournament and Top Goalscorer.'); return false; }
   const done = PICK_IDS.filter(id => myPicks[id]).length;
   if (done < PICK_IDS.length){ alert(`Please pick all ${PICK_IDS.length} games first (${done} done).`); return false; }
-  myBonus = { potm, scorer }; saveBonus();
+  const mode = (document.querySelector('input[name="pkmode"]:checked') || {}).value || 'money';
+  myBonus = { potm, scorer }; saveBonus(); saveMode(mode);
   const btn = document.getElementById('pkSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
 
   const onDone = () => { markSubmitted(name); editingPicks = false; loadEntries().then(renderPicks); window.scrollTo({ top:0, behavior:'smooth' }); };
@@ -1076,7 +1106,7 @@ function submitPicks(e){
   // Primary: serverless function -> live pot & leaderboard. Fallback: Netlify Forms.
   fetch('/.netlify/functions/submit', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ name, email, picks: myPicks, potm, scorer })
+    body: JSON.stringify({ name, email, picks: myPicks, potm, scorer, mode })
   })
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(d => { if (d && d.ok) onDone(); else return Promise.reject(); })
@@ -1085,7 +1115,7 @@ function submitPicks(e){
       body.append('form-name', 'bracket-picks');
       body.append('name', name); body.append('email', email);
       body.append('picks', JSON.stringify(myPicks));
-      body.append('potm', potm); body.append('scorer', scorer);
+      body.append('potm', potm); body.append('scorer', scorer); body.append('mode', mode);
       fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
         .then(r => { if (!r.ok) throw new Error(r.status); onDone(); })
         .catch(onFail);
@@ -1126,42 +1156,54 @@ function scoreEntry(entry){
   const bonus = bonusPoints(entry || {});
   return { pts: pts + bonus, bracketPts: pts, bonus, correct, decided };
 }
+let lbView = 'overall';
+function setLbView(v){ lbView = v; renderLeaderboard(); }
 function renderLeaderboard(){
   renderPot('potLb');
+  const pot = moneyEntries().length * POOL.entryFee;
+  const pay = POOL.split.map(s => Math.round(pot * s));
   document.getElementById('lbInfo').innerHTML =
     `<h2>🏆 Leaderboard</h2>
-     <p style="margin:0;color:var(--muted);font-size:12.5px">Ranked by points (bracket + bonus). Ties broken by games correct, then a correct Player of the Tournament, then Top Goalscorer.</p>`;
+     <div class="lbtoggle">
+       <button class="${lbView==='overall'?'active':''}" onclick="setLbView('overall')">🌍 Overall (everyone)</button>
+       <button class="${lbView==='money'?'active':''}" onclick="setLbView('money')">💰 Money bracket</button>
+     </div>
+     <p style="margin:9px 0 0;color:var(--muted);font-size:12px">${
+       lbView==='money'
+         ? `Only $${POOL.entryFee} players. Pot <b>$${pot}</b> pays <b>60/30/10</b> to the top 3.`
+         : `Everyone — money + fun — competes for a separate <b>overall</b> prize. <span class="mtag">💰</span> = also in the money bracket.`
+     } Ties: games correct → Player of the Tournament → Top Goalscorer.</p>`;
 
   const body = document.getElementById('lbBody');
-  if (!ENTRIES.length){
-    body.innerHTML = `<div class="lbempty"><b>No entries locked in yet.</b><br>Picks are gathered on the <b>Make Picks</b> tab; the leaderboard fills in here once the bracket locks and games begin.</div>`;
+  const pool = lbView === 'money' ? moneyEntries() : ENTRIES;
+  if (!pool.length){
+    body.innerHTML = `<div class="lbempty"><b>${lbView==='money' ? 'No paid entries yet.' : 'No entries yet.'}</b><br>Picks are gathered on the <b>Make Picks</b> tab; standings fill in here as people enter and games begin.</div>`;
     return;
   }
   const aw = POOL.awards;
-  const rows = ENTRIES.map(e => {
+  const rows = pool.map(e => {
     const s = scoreEntry(e);
     const champTeam = e.picks && e.picks[104] ? (TEAM_BY_ISO[e.picks[104]] || null) : null;
     const potmRight = !!(aw.potm && e.potm && normName(e.potm) === normName(aw.potm));
     const scorerRight = !!(aw.scorer && e.scorer && normName(e.scorer) === normName(aw.scorer));
-    return { name: e.name || '—', champ: champTeam, pts: s.pts, bonus: s.bonus, correct: s.correct,
+    return { name: e.name || '—', money: isMoney(e), champ: champTeam, pts: s.pts, correct: s.correct,
              potm: e.potm || '', scorer: e.scorer || '', potmRight, scorerRight };
   }).sort((a,b) => b.pts - a.pts || b.correct - a.correct || (b.potmRight - a.potmRight) || (b.scorerRight - a.scorerRight) || a.name.localeCompare(b.name));
 
-  const pot = ENTRIES.length * POOL.entryFee;
-  const pay = POOL.split.map(s => Math.round(pot * s));
   const anyResults = MATCHES.some(m => RESULTS[m.id]);
   let html = `<table class="lbtable"><thead><tr><th></th><th>Player</th><th class="champ">Champion pick</th><th class="r">Correct</th><th class="r">Points</th></tr></thead><tbody>`;
   rows.forEach((row, i) => {
     const rank = i + 1;
     const cls = rank <= 3 ? ` class="top${rank}"` : '';
-    const payCell = rank <= 3 && pot > 0 ? `<div class="pay">$${pay[rank-1]}</div>` : '';
+    const payCell = (lbView==='money' && rank <= 3 && pot > 0) ? `<div class="pay">$${pay[rank-1]}</div>` : '';
     const champ = row.champ ? `<span class="flag">${flagEmoji(row.champ.iso)}</span> ${row.champ.short || row.champ.name}` : '—';
+    const badge = (lbView==='overall' && row.money) ? ' <span class="mtag">💰</span>' : '';
     const bonusLine = (row.potm || row.scorer)
       ? `<div class="bonusline">🏅 ${row.potm || '—'}${row.potmRight?' ✓':''} · ⚽ ${row.scorer || '—'}${row.scorerRight?' ✓':''}</div>` : '';
-    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
+    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${badge}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
   });
   html += `</tbody></table>`;
-  if (!anyResults) html += `<p style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">Everyone is on 0 until the knockout games begin — standings update automatically as results come in.</p>`;
+  if (!anyResults) html += `<p style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">Standings update automatically as results come in.</p>`;
   body.innerHTML = html;
 }
 
