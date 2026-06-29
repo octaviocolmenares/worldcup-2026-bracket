@@ -279,6 +279,7 @@
   .lbtable .pts{font-weight:800;color:var(--accent);}
   .lbtable .pay{font-size:11px;color:var(--gold);}
   .lbtable .bonusline{font-size:10.5px;color:var(--muted);margin-top:3px;}
+  .lbtable .champline{display:none;font-size:11px;color:var(--ink);margin-top:3px;}
   .lbtable .champ{color:var(--muted);}
   .lbempty{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 18px;text-align:center;color:var(--muted);}
   .lbempty b{color:var(--ink);}
@@ -291,6 +292,7 @@
     .pkvs{display:none;}
     .pkopt{font-size:14px;padding:13px 13px;}
     .lbtable .champ{display:none;}
+    .lbtable .champline{display:block;}
     .lbtable th,.lbtable td{padding:9px 6px;}
   }
 
@@ -931,8 +933,8 @@ const POINTS = { R32:1, R16:2, QF:4, SF:8, F:16 };
 const PICK_ROUNDS = [['R32','Round of 32'],['R16','Round of 16'],['QF','Quarterfinals'],['SF','Semifinals'],['F','Final']];
 // Picks lock Monday Jun 29 at 12:00 PM ET — before that day's first game.
 // (Sunday's South Africa–Canada game is a bye, so nobody has to pick it.)
-const LOCK_ISO = '2026-06-29T12:00:00-04:00';
-const LOCK_LABEL = 'Mon, Jun 29 · 12:00 PM ET';
+const LOCK_ISO = '2026-06-29T12:45:00-04:00';
+const LOCK_LABEL = 'Mon, Jun 29 · 12:45 PM ET';
 function picksLocked(){ return Date.now() >= new Date(LOCK_ISO).getTime(); }
 // Games given as a "bye" — excluded from picking & scoring. The bye winner still
 // feeds the next round as a pickable "winner of that game" option.
@@ -1200,7 +1202,8 @@ function renderLeaderboard(){
     const badge = (lbView==='overall' && row.money) ? ' <span class="mtag">💰</span>' : '';
     const bonusLine = (row.potm || row.scorer)
       ? `<div class="bonusline">🏅 ${row.potm || '—'}${row.potmRight?' ✓':''} · ⚽ ${row.scorer || '—'}${row.scorerRight?' ✓':''}</div>` : '';
-    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${badge}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
+    const champLine = `<div class="champline">🏆 ${champ}</div>`;
+    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${badge}${champLine}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
   });
   html += `</tbody></table>`;
   if (!anyResults) html += `<p style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">Standings update automatically as results come in.</p>`;
