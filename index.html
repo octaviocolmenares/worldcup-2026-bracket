@@ -280,6 +280,13 @@
   .lbtable .pay{font-size:11px;color:var(--gold);}
   .lbtable .bonusline{font-size:10.5px;color:var(--muted);margin-top:3px;}
   .lbtable .champline{display:none;font-size:11px;color:var(--ink);margin-top:3px;}
+  .lbrow{cursor:pointer;transition:background .12s;}
+  .lbrow:hover{background:rgba(75,141,255,.06);}
+  .lbchev{color:var(--muted);font-size:10px;}
+  .ebrow > td{background:rgba(75,141,255,.06);padding:12px 14px;}
+  .ebchamp{font-size:14px;margin-bottom:9px;}
+  .ebround{font-size:12.5px;line-height:1.6;margin:5px 0;}
+  .eblabel{display:inline-block;min-width:80px;color:var(--gold);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;vertical-align:top;}
   .lbtable .champ{color:var(--muted);}
   .lbempty{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 18px;text-align:center;color:var(--muted);}
   .lbempty b{color:var(--ink);}
@@ -1159,6 +1166,29 @@ function scoreEntry(entry){
   const bonus = bonusPoints(entry || {});
   return { pts: pts + bonus, bracketPts: pts, bonus, correct, decided };
 }
+// Resolve a player's pick for a game to a flag + name for display.
+function pickedTeamForDisplay(picks, gameId){
+  const v = picks && picks[gameId]; if (!v) return null;
+  if (/^BYE/.test(v)){ const w = resultWinnerTeam(+v.slice(3)); return w ? `${flagEmoji(w.iso)} ${w.short||w.name}` : 'SA/Canada winner'; }
+  const t = TEAM_BY_ISO[v]; return t ? `${flagEmoji(t.iso)} ${t.short||t.name}` : v;
+}
+// A compact, read-only summary of a player's predicted bracket.
+function entryBracketHTML(entry){
+  const picks = (entry && entry.picks) || {};
+  if (!Object.keys(picks).length) return `<div class="ebround" style="color:var(--muted)">No picks recorded.</div>`;
+  const champ = pickedTeamForDisplay(picks, 104) || '—';
+  let html = `<div class="ebchamp">🏆 Champion: <b>${champ}</b></div>`;
+  [['SF','Finalists'],['QF','Final 4'],['R16','Final 8'],['R32','Round of 32']].forEach(([key,label]) => {
+    const teams = MATCHES.filter(m => m.round === key && !BYE_IDS.has(m.id)).map(m => pickedTeamForDisplay(picks, m.id)).filter(Boolean);
+    if (teams.length) html += `<div class="ebround"><span class="eblabel">${label}</span> ${teams.join(' · ')}</div>`;
+  });
+  return html;
+}
+function toggleEntry(i){
+  const el = document.getElementById('eb'+i), ch = document.getElementById('chev'+i);
+  if (el){ el.hidden = !el.hidden; if (ch) ch.textContent = el.hidden ? '▾' : '▴'; }
+}
+
 let lbView = 'overall';
 function setLbView(v){ lbView = v; renderLeaderboard(); }
 function renderLeaderboard(){
@@ -1175,7 +1205,7 @@ function renderLeaderboard(){
        lbView==='money'
          ? `Only $${POOL.entryFee} players. Pot <b>$${pot}</b> pays <b>60/30/10</b> to the top 3.`
          : `Everyone — money + fun — competes for a separate <b>overall</b> prize. <span class="mtag">💰</span> = also in the money bracket.`
-     } Ties: games correct → Player of the Tournament → Top Goalscorer.</p>`;
+     } Ties: games correct → Player of the Tournament → Top Goalscorer. <b>👆 Tap a player to see their full bracket.</b></p>`;
 
   const body = document.getElementById('lbBody');
   const pool = lbView === 'money' ? moneyEntries() : ENTRIES;
@@ -1190,21 +1220,22 @@ function renderLeaderboard(){
     const potmRight = !!(aw.potm && e.potm && normName(e.potm) === normName(aw.potm));
     const scorerRight = !!(aw.scorer && e.scorer && normName(e.scorer) === normName(aw.scorer));
     return { name: e.name || '—', money: isMoney(e), champ: champTeam, pts: s.pts, correct: s.correct,
-             potm: e.potm || '', scorer: e.scorer || '', potmRight, scorerRight };
+             potm: e.potm || '', scorer: e.scorer || '', potmRight, scorerRight, entry: e };
   }).sort((a,b) => b.pts - a.pts || b.correct - a.correct || (b.potmRight - a.potmRight) || (b.scorerRight - a.scorerRight) || a.name.localeCompare(b.name));
 
   const anyResults = MATCHES.some(m => RESULTS[m.id]);
   let html = `<table class="lbtable"><thead><tr><th></th><th>Player</th><th class="champ">Champion pick</th><th class="r">Correct</th><th class="r">Points</th></tr></thead><tbody>`;
   rows.forEach((row, i) => {
     const rank = i + 1;
-    const cls = rank <= 3 ? ` class="top${rank}"` : '';
+    const cls = rank <= 3 ? ` top${rank}` : '';
     const payCell = (lbView==='money' && rank <= 3 && pot > 0) ? `<div class="pay">$${pay[rank-1]}</div>` : '';
     const champ = row.champ ? `<span class="flag">${flagEmoji(row.champ.iso)}</span> ${row.champ.short || row.champ.name}` : '—';
     const badge = (lbView==='overall' && row.money) ? ' <span class="mtag">💰</span>' : '';
     const bonusLine = (row.potm || row.scorer)
       ? `<div class="bonusline">🏅 ${row.potm || '—'}${row.potmRight?' ✓':''} · ⚽ ${row.scorer || '—'}${row.scorerRight?' ✓':''}</div>` : '';
     const champLine = `<div class="champline">🏆 ${champ}</div>`;
-    html += `<tr${cls}><td class="rank">${rank}</td><td>${row.name}${badge}${champLine}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
+    html += `<tr class="lbrow${cls}" onclick="toggleEntry(${i})"><td class="rank">${rank}</td><td>${row.name}${badge} <span class="lbchev" id="chev${i}">▾</span>${champLine}${bonusLine}${payCell}</td><td class="champ">${champ}</td><td class="r">${row.correct}</td><td class="r pts">${row.pts}</td></tr>`;
+    html += `<tr class="ebrow" id="eb${i}" hidden><td colspan="5">${entryBracketHTML(row.entry)}</td></tr>`;
   });
   html += `</tbody></table>`;
   if (!anyResults) html += `<p style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">Standings update automatically as results come in.</p>`;
