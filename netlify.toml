@@ -1,0 +1,7 @@
+# Static site (no build) served from the repo root, with serverless functions
+# powering the live pool (submit + entries) via Netlify Blobs.
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
