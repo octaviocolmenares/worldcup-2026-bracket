@@ -610,6 +610,8 @@ const RESULTS = {
   100: { hs: 3, as: 1, win: 'home' }, // QF: Argentina 3–1 Switzerland AET (Mac Allister 10', Álvarez 112', L.Martínez 120+1'; Ndoye 67') — Argentina advance
   101: { hs: 0, as: 2, win: 'away' }, // SF: France 0–2 Spain (Oyarzabal 22' pen, Porro 58') — Spain reach the final
   102: { hs: 1, as: 2, win: 'away' }, // SF: England 1–2 Argentina (Gordon 55'; Enzo 85', L.Martínez 90+2', both Messi assists) — Argentina reach the final
+  103: { hs: 4, as: 6, win: 'away' }, // 3RD: France 4–6 England (Saka hat-trick; Mbappé x2) — England take bronze (not scored)
+  104: { hs: 1, as: 0, win: 'home' }, // FINAL: Spain 1–0 Argentina AET (Ferran Torres 105') — 🏆 SPAIN ARE WORLD CHAMPIONS
 };
 
 // Resolve a slot to a concrete team object once its result is known, else null.
@@ -936,14 +938,25 @@ const POOL = {
   split: [0.6, 0.3, 0.1],
   bonus: { potm: 10, scorer: 10 },  // points for a correct bonus pick
   // Filled in at the end of the tournament so bonus picks can be scored:
-  awards: { potm: '', scorer: '' }  // e.g. potm:'Lamine Yamal', scorer:'Kylian Mbappé'
+  awards: { potm: 'Rodri', scorer: 'Kylian Mbappé' }  // Golden Ball: Rodri · Golden Boot: Mbappé (10 goals)
 };
 // Loose, forgiving match for free-typed bonus answers (case/spacing/accents).
 function normName(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
+// Lenient award matching: people typed the same player many ways ("Messi" / "Lionel Messi",
+// "Mbappe" / "Kylian Mbappé"). Match on containment or a shared name token (>=4 chars).
+function nameMatches(pick, award){
+  const a = normName(pick), b = normName(award);
+  if (!a || !b) return false;
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  const toks = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+                    .split(/[^a-z0-9]+/).filter(t => t.length >= 4);
+  const ta = toks(pick), tb = toks(award);
+  return ta.some(t => tb.includes(t));
+}
 function bonusPoints(entry){
   let p = 0;
-  if (POOL.awards.potm && entry.potm && normName(entry.potm) === normName(POOL.awards.potm)) p += POOL.bonus.potm;
-  if (POOL.awards.scorer && entry.scorer && normName(entry.scorer) === normName(POOL.awards.scorer)) p += POOL.bonus.scorer;
+  if (POOL.awards.potm && entry.potm && nameMatches(entry.potm, POOL.awards.potm)) p += POOL.bonus.potm;
+  if (POOL.awards.scorer && entry.scorer && nameMatches(entry.scorer, POOL.awards.scorer)) p += POOL.bonus.scorer;
   return p;
 }
 let myBonus = {};
@@ -1245,8 +1258,8 @@ function renderLeaderboard(){
   const rows = pool.map(e => {
     const s = scoreEntry(e);
     const champTeam = e.picks && e.picks[104] ? (TEAM_BY_ISO[e.picks[104]] || null) : null;
-    const potmRight = !!(aw.potm && e.potm && normName(e.potm) === normName(aw.potm));
-    const scorerRight = !!(aw.scorer && e.scorer && normName(e.scorer) === normName(aw.scorer));
+    const potmRight = !!(aw.potm && e.potm && nameMatches(e.potm, aw.potm));
+    const scorerRight = !!(aw.scorer && e.scorer && nameMatches(e.scorer, aw.scorer));
     return { name: e.name || '—', money: isMoney(e), champ: champTeam, pts: s.pts, correct: s.correct,
              potm: e.potm || '', scorer: e.scorer || '', potmRight, scorerRight, entry: e };
   }).sort((a,b) => b.pts - a.pts || b.correct - a.correct || (b.potmRight - a.potmRight) || (b.scorerRight - a.scorerRight) || a.name.localeCompare(b.name));
